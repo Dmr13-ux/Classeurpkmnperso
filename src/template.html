@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Classeur Pokémon Jap</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Classeur">
+<meta name="theme-color" content="#141821">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Concept : un classeur de collection. Onglets de sets, bandeau du set, trophées, puis les pochettes de cartes en grille. */
+:root{
+  --bg:#eef0f4; --surface:#ffffff; --surface-2:#e3e7ee; --ink:#1b2130; --muted:#5d6678;
+  --line:#cfd5df; --accent:#d4342c; --accent-ink:#ffffff; --gold:#b8860b; --ok:#1f8a4c;
+  --g:#3f9a3c; --f:#e0602a; --w:#2f7fd0; --l:#d9a800; --p:#8a4fbf; --fi:#a8652f; --c:#8a8f99; --t:#5d6678;
+  --display:"Dela Gothic One","Arial Black",system-ui,sans-serif;
+  --body:"Zen Kaku Gothic New",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141821; --surface:#1d2230; --surface-2:#262c3c; --ink:#e9ecf2; --muted:#9aa3b5;
+  --line:#323a4d; --accent:#ef5148; --accent-ink:#ffffff; --gold:#e3b53c; --ok:#3fbf73; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141821; --surface:#1d2230; --surface-2:#262c3c; --ink:#e9ecf2; --muted:#9aa3b5;
+  --line:#323a4d; --accent:#ef5148; --accent-ink:#ffffff; --gold:#e3b53c; --ok:#3fbf73; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+.wrap{max-width:1180px;margin:0 auto}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* Onglets des sets */
+.era{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding-top:20px}
+.era strong{font-family:var(--display);font-weight:400;font-size:15px;letter-spacing:.04em}
+.era span{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.sets{display:flex;gap:10px;overflow-x:auto;padding-block:12px 4px;scrollbar-width:thin}
+.set{flex:0 0 auto;width:150px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.set[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.set .code{font:11px var(--mono);color:var(--muted)}
+.set b{font-size:13px;line-height:1.2;min-height:2.4em}
+.set .mini{height:5px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+.set .mini i{display:block;height:100%;background:var(--accent)}
+.set.done .mini i{background:var(--gold)}
+.set small{font:11px var(--mono);color:var(--muted)}
+
+/* En-tête du set */
+header{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end;padding-block:20px;border-bottom:2px solid var(--ink)}
+@media (max-width:560px){header{grid-template-columns:1fr}.score{text-align:left!important}}
+.kana{font-family:var(--display);color:var(--accent);font-size:15px;letter-spacing:.08em}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,6vw,52px);line-height:1.05;margin:6px 0 10px;text-wrap:balance}
+.meta{color:var(--muted);font-size:14px;max-width:62ch}
+.score{text-align:right}
+.score b{font-family:var(--display);font-weight:400;font-size:clamp(40px,8vw,72px);line-height:.9;display:block;font-variant-numeric:tabular-nums}
+.score span{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.bar{grid-column:1/-1;height:12px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--gold));transition:width .5s ease}
+
+/* Trophées */
+h2{font-family:var(--display);font-weight:400;font-size:20px;margin:28px 0 12px}
+.trophies{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.trophy{display:grid;grid-template-columns:40px 1fr;gap:10px;align-items:center;padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.trophy .medal{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:20px;background:var(--surface-2);filter:grayscale(1);opacity:.55}
+.trophy.won{border-color:var(--gold)}
+.trophy.won .medal{filter:none;opacity:1;background:color-mix(in srgb,var(--gold) 25%,transparent)}
+.trophy strong{display:block;font-size:14px;line-height:1.2}
+.trophy small{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+
+/* Barre d'outils */
+.tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:28px 0 16px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:99px;overflow:hidden;background:var(--surface);flex-wrap:wrap}
+.seg button{border:0;background:none;padding:7px 14px;cursor:pointer;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 11px;font-size:13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip i{width:10px;height:10px;border-radius:50%;background:var(--dot)}
+.chip[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.search{flex:1 1 180px;min-width:0;padding:8px 14px;border:1px solid var(--line);border-radius:99px;background:var(--surface)}
+.sortlbl{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.sortlbl select{padding:6px 10px;border:1px solid var(--line);border-radius:99px;background:var(--surface);color:var(--ink)}
+.reset-f{border:0;background:none;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;padding:6px 4px}
+
+/* Grille de cartes */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
+@media (max-width:420px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}
+.card{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pic{position:relative;aspect-ratio:63/88;max-width:100%;border-radius:8px;overflow:hidden;background:var(--surface-2);border:0;padding:0;cursor:pointer;display:block;width:100%}
+.pic img{width:100%;height:100%;object-fit:cover;display:block;transition:filter .3s,opacity .3s,transform .2s}
+.pic .ph{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:10px;color:var(--muted);font-size:13px}
+.card:not(.owned) .pic img{filter:grayscale(1);opacity:.38}
+.card.owned .pic{box-shadow:0 0 0 3px var(--ok)}
+.card.owned.holo .pic{box-shadow:0 0 0 3px var(--gold),0 6px 18px color-mix(in srgb,var(--gold) 40%,transparent)}
+.pic:hover img{transform:scale(1.03)}
+/* Effet holo : reflet arc-en-ciel qui glisse sur la carte et suit le doigt / la souris */
+.card.holo .pic,.big.holo{--mx:50%;--my:50%;transform-style:preserve-3d;transition:transform .25s ease}
+.card.holo .pic::after,.big.holo::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;z-index:1;
+  background:
+    radial-gradient(circle at var(--mx) var(--my),rgba(255,255,255,.3),transparent 40%),
+    linear-gradient(115deg,transparent 30%,#ff7fa8 40%,#ffe27f 46%,#7fffc4 52%,#7fd0ff 58%,#c99bff 64%,transparent 72%);
+  background-size:100% 100%,300% 300%;background-position:center,0% 50%;
+  mix-blend-mode:soft-light;opacity:.55;animation:holo 9s ease-in-out infinite}
+.card.holo:not(.owned) .pic::after{opacity:.2}
+body.foil-off .card.holo .pic::after,body.foil-off .big.holo::after{display:none}
+body.foil-off .card.holo .pic.tilt{transform:none}
+.big{position:relative}
+@keyframes holo{0%{background-position:center,0% 50%}50%{background-position:center,100% 50%}100%{background-position:center,0% 50%}}
+.card.holo .pic.tilt{transform:perspective(600px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg))}
+.tick{position:absolute;top:6px;right:6px;width:34px;height:34px;border-radius:50%;border:2px solid #fff;background:rgba(20,24,33,.55);color:#fff;font-size:18px;display:grid;place-items:center;cursor:pointer;z-index:2}
+.card.owned .tick{background:var(--ok)}
+.card.pop .tick{animation:pop .45s ease}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+.qty{position:absolute;left:6px;top:6px;z-index:2;background:var(--ink);color:var(--bg);font:12px var(--mono);border-radius:6px;padding:2px 6px}
+.cap{display:flex;justify-content:space-between;gap:6px;align-items:baseline;min-width:0}
+.cap strong{font-size:14px;line-height:1.25;overflow-wrap:anywhere}
+.num{font:12px var(--mono);color:var(--muted);white-space:nowrap}
+.sub{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--dot);flex:none}
+.holo-tag{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.06em;text-transform:uppercase}
+.cond{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--ink)}
+.upg-tag{font-size:11px;font-weight:700;color:var(--accent)}
+.empty{padding:40px;text-align:center;color:var(--muted);grid-column:1/-1}
+
+/* Fiche carte */
+dialog{border:0;border-radius:14px;padding:0;background:var(--surface);color:var(--ink);width:min(720px,calc(100vw - 32px));max-height:calc(100vh - 32px)}
+dialog::backdrop{background:rgba(10,12,18,.6)}
+.sheet{display:grid;grid-template-columns:minmax(0,240px) minmax(0,1fr);gap:20px;padding:20px}
+@media (max-width:560px){.sheet{grid-template-columns:1fr}.sheet .big{max-width:220px;margin:0 auto}}
+.big{border-radius:10px;overflow:hidden;aspect-ratio:63/88;background:var(--surface-2)}
+.big img{width:100%;height:100%;object-fit:cover;display:block}
+.form{display:flex;flex-direction:column;gap:12px;min-width:0}
+.form h3{font-family:var(--display);font-weight:400;font-size:24px;margin:0;line-height:1.1}
+.form label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.form select,.form textarea,.form input[type=number]{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.check{flex-direction:row!important;align-items:center;gap:8px!important;color:var(--ink)!important;font-size:14px!important}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:700}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stepper button{border:0;background:var(--surface-2);width:36px;height:36px;cursor:pointer;font-size:18px}
+.stepper output{min-width:40px;text-align:center;font:15px var(--mono)}
+a{color:var(--accent)}
+
+/* Sauvegarde */
+footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center;color:var(--muted);font-size:13px}
+footer .grow{flex:1 1 260px}
+.confirm{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Toast */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(160%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;font-weight:700;transition:transform .35s ease;z-index:20;max-width:calc(100vw - 32px)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:19}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div class="wrap">
+  <div class="era"><strong>Ère Original · Japon</strong><span id="eraCount"></span></div>
+  <nav class="sets" id="sets" aria-label="Choisir un set"></nav>
+
+  <header>
+    <div>
+      <div class="kana" id="h-kana"></div>
+      <h1 id="h-name"></h1>
+      <div class="meta" id="h-meta"></div>
+    </div>
+    <div class="score"><b id="pct">0 %</b><span id="count"></span><span id="value" style="display:block"></span></div>
+    <div class="bar" aria-hidden="true"><i id="barfill"></i></div>
+  </header>
+
+  <h2>Trophées du set</h2>
+  <div class="trophies" id="trophies"></div>
+
+  <div class="tools">
+    <div class="seg" role="group" aria-label="Afficher">
+      <button aria-pressed="true" data-show="all">Toutes</button>
+      <button aria-pressed="false" data-show="own">Possédées</button>
+      <button aria-pressed="false" data-show="miss">Manquantes</button>
+      <button aria-pressed="false" data-show="upg">À upgrader</button>
+    </div>
+    <label class="sortlbl" for="sort">Trier
+      <select id="sort">
+        <option value="set">Numéro du set</option>
+        <option value="dex">N° imprimé sur la carte</option>
+        <option value="name">Nom</option>
+      </select>
+    </label>
+    <button class="chip" id="dirBtn" aria-label="Inverser l'ordre">↑ Croissant</button>
+    <div class="chips" id="types"></div>
+    <button class="chip" id="foilBtn" aria-pressed="true">✨ Effet holo : oui</button>
+    <button class="reset-f" id="resetFilters" hidden>✕ Réinitialiser les filtres</button>
+    <input class="search" id="q" type="search" placeholder="Chercher (Dracaufeu, Charizard, n° 006…)" aria-label="Chercher une carte">
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    <div class="grow">Ta collection est enregistrée dans ce navigateur. Fais une sauvegarde de temps en temps (et pour passer sur un autre appareil). Images : Pokellector, connexion internet requise.</div>
+    <button class="btn" id="exportBtn">Exporter ma sauvegarde</button>
+    <label class="btn" for="importFile" style="display:inline-block">Importer une sauvegarde</label>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
+    <span class="confirm" id="resetZone"></span>
+  </footer>
+</div>
+
+<dialog id="dlg"><div class="sheet">
+  <div class="big"><img id="d-img" alt="" referrerpolicy="no-referrer"></div>
+  <div class="form">
+    <div>
+      <div class="num" id="d-num"></div>
+      <h3 id="d-name"></h3>
+      <div class="sub" id="d-sub"></div>
+    </div>
+    <div class="row" style="justify-content:space-between"><button class="btn" id="d-toggle"></button>
+      <label class="check" for="d-foil" id="d-foil-lbl"><input type="checkbox" id="d-foil"> Effet holo</label></div>
+    <div class="row">
+      <span style="font-size:13px;color:var(--muted)">Quantité</span>
+      <span class="stepper"><button id="d-minus" aria-label="Retirer un exemplaire">−</button><output id="d-qty">0</output><button id="d-plus" aria-label="Ajouter un exemplaire">+</button></span>
+    </div>
+    <label for="d-cond">État
+      <select id="d-cond">
+        <option value="">Non renseigné</option>
+        <option value="MT">MT · Mint</option><option value="NM">NM · Near Mint</option><option value="EX">EX · Excellent</option>
+        <option value="GD">GD · Good</option><option value="LP">LP · Light Played</option><option value="PL">PL · Played</option><option value="PO">PO · Poor</option>
+      </select>
+    </label>
+    <label class="check" for="d-upg"><input type="checkbox" id="d-upg"> À upgrader (je veux une meilleure version)</label>
+    <label class="check" for="d-norar"><input type="checkbox" id="d-norar"> <span id="d-norar-lbl">Version « No Rarity » (1er tirage, sans symbole de rareté)</span></label>
+    <div class="row">
+      <label for="d-val" style="flex:1 1 120px">Valeur estimée (€)
+        <input type="number" id="d-val" min="0" step="0.5" inputmode="decimal" placeholder="ex. 12">
+      </label>
+      <label for="d-paid" style="flex:1 1 120px">Prix payé (€)
+        <input type="number" id="d-paid" min="0" step="0.5" inputmode="decimal" placeholder="ex. 8">
+      </label>
+    </div>
+    <div class="row" style="font-size:13px">Prix du marché :
+      <a id="d-cm" target="_blank" rel="noopener">Cardmarket ↗</a>
+      <a id="d-eb" target="_blank" rel="noopener">eBay ventes réussies ↗</a>
+    </div>
+    <label for="d-notes">Notes
+      <textarea id="d-notes" rows="3" placeholder="Gradée PSA 9, achetée à…, doublon à échanger…"></textarea>
+    </label>
+    <div class="row" style="justify-content:space-between">
+      <a id="d-link" target="_blank" rel="noopener">Voir sur Pokellector ↗</a>
+      <button class="btn primary" id="d-close">Fermer</button>
+    </div>
+  </div>
+</div></dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const TYPES={G:["Plante","--g"],F:["Feu","--f"],W:["Eau","--w"],L:["Électrique","--l"],P:["Psy","--p"],Fi:["Combat","--fi"],C:["Incolore","--c"],T:["Dresseur","--t"],E:["Énergie","--t"]};
+// Expansion Pack : [slug Pokellector, nom anglais, nom français, n° Pokédex, type, holo]
+const RAW_EXP=[
+["Bulbasaur","Bulbasaur","Bulbizarre",1,"G"],["Caterpie","Caterpie","Chenipan",10,"G"],["Metapod","Metapod","Chrysacier",11,"G"],
+["Weedle","Weedle","Aspicot",13,"G"],["Nidoran","Nidoran♂","Nidoran♂",32,"G"],["Koffing","Koffing","Smogo",109,"G"],
+["Tangela","Tangela","Saquedeneu",114,"G"],["Ivysaur","Ivysaur","Herbizarre",2,"G"],["Kakuna","Kakuna","Coconfort",14,"G"],
+["Nidorino","Nidorino","Nidorino",33,"G"],["Venusaur","Venusaur","Florizarre",3,"G",1],["Beedrill","Beedrill","Dardargnan",15,"G"],
+["Nidoking","Nidoking","Nidoking",34,"G",1],
+["Charmander","Charmander","Salamèche",4,"F"],["Vulpix","Vulpix","Goupix",37,"F"],["Ponyta","Ponyta","Ponyta",77,"F"],
+["Charmeleon","Charmeleon","Reptincel",5,"F"],["Growlithe","Growlithe","Caninos",58,"F"],["Arcanine","Arcanine","Arcanin",59,"F"],
+["Magmar","Magmar","Magmar",126,"F"],["Charizard","Charizard","Dracaufeu",6,"F",1],["Ninetales","Ninetales","Feunard",38,"F",1],
+["Squirtle","Squirtle","Carapuce",7,"W"],["Poliwag","Poliwag","Ptitard",60,"W"],["Staryu","Staryu","Stari",120,"W"],
+["Starmie","Starmie","Staross",121,"W"],["Wartortle","Wartortle","Carabaffe",8,"W"],["Poliwhirl","Poliwhirl","Têtarte",61,"W"],
+["Seel","Seel","Otaria",86,"W"],["Dewgong","Dewgong","Lamantine",87,"W"],["Magikarp","Magikarp","Magicarpe",129,"W"],
+["Blastoise","Blastoise","Tortank",9,"W",1],["Poliwrath","Poliwrath","Tartard",62,"W",1],["Gyarados","Gyarados","Léviator",130,"W",1],
+["Pikachu","Pikachu","Pikachu",25,"L"],["Magnemite","Magnemite","Magnéti",81,"L"],["Voltorb","Voltorb","Voltorbe",100,"L"],
+["Raichu","Raichu","Raichu",26,"L",1],["Magneton","Magneton","Magnéton",82,"L",1],["Electrode","Electrode","Électrode",101,"L"],
+["Electabuzz","Electabuzz","Élektek",125,"L"],["Zapdos","Zapdos","Électhor",145,"L",1],
+["Abra","Abra","Abra",63,"P"],["Gastly","Gastly","Fantominus",92,"P"],["Drowzee","Drowzee","Soporifik",96,"P"],
+["Kadabra","Kadabra","Kadabra",64,"P"],["Haunter","Haunter","Spectrum",93,"P"],["Jynx","Jynx","Lippoutou",124,"P"],
+["Alakazam","Alakazam","Alakazam",65,"P",1],["Mewtwo","Mewtwo","Mewtwo",150,"P",1],
+["Sandshrew","Sandshrew","Sabelette",27,"Fi"],["Diglett","Diglett","Taupiqueur",50,"Fi"],["Machop","Machop","Machoc",66,"Fi"],
+["Onix","Onix","Onix",95,"Fi"],["Machoke","Machoke","Machopeur",67,"Fi"],["Dugtrio","Dugtrio","Triopikeur",51,"Fi"],
+["Machamp","Machamp","Mackogneur",68,"Fi",1],["Hitmonchan","Hitmonchan","Tygnon",107,"Fi",1],
+["Pidgey","Pidgey","Roucool",16,"C"],["Rattata","Rattata","Rattata",19,"C"],["Doduo","Doduo","Doduo",84,"C"],
+["Raticate","Raticate","Rattatac",20,"C"],["Farfetchd","Farfetch'd","Canarticho",83,"C"],["Porygon","Porygon","Porygon",137,"C"],
+["Dratini","Dratini","Minidraco",147,"C"],["Pidgeotto","Pidgeotto","Roucoups",17,"C"],["Clefairy","Clefairy","Mélofée",35,"C",1],
+["Chansey","Chansey","Leveinard",113,"C",1],["Dragonair","Dragonair","Draco",148,"C"],
+["Energy-Removal","Energy Removal","",0,"T"],["Potion","Potion","Potion",0,"T"],["Gust-of-Wind","Gust of Wind","",0,"T"],
+["Switch","Switch","",0,"T"],["Bill","Bill","Léo",0,"T"],["Super-Potion","Super Potion","Super Potion",0,"T"],
+["Energy-Retrieval","Energy Retrieval","",0,"T"],["Professor-Oak","Professor Oak","Professeur Chen",0,"T"],["Revive","Revive","",0,"T"],
+["Defender","Defender","",0,"T"],["Full-Heal","Full Heal","",0,"T"],["PlusPower","PlusPower","",0,"T"],
+["Pokedex","Pokédex","Pokédex",0,"T"],["Pokemon-Center","Pokémon Center","Centre Pokémon",0,"T"],["Pokemon-Flute","Pokémon Flute","",0,"T"],
+["Maintenance","Maintenance","Maintenance",0,"T"],["Devolution-Spray","Devolution Spray","",0,"T"],["Item-Finder","Item Finder","",0,"T"],
+["Super-Energy-Removal","Super Energy Removal","",0,"T"],["Impostor-Professor-Oak","Impostor Professor Oak","",0,"T"],
+["Computer-Search","Computer Search","",0,"T"],["Clefairy-Doll","Clefairy Doll","",0,"T"],["Scoop-Up","Scoop Up","",0,"T"],
+["Pokemon-Trader","Pokémon Trader","",0,"T"],["Pokemon-Breeder","Pokémon Breeder","",0,"T"],["Lass","Lass","",0,"T"],
+["Double-Colorless-Energy","Double Colorless Energy","Double Énergie Incolore",0,"E"],
+["Grass-Energy","Grass Energy","Énergie Plante",0,"E"],["Fire-Energy","Fire Energy","Énergie Feu",0,"E"],
+["Water-Energy","Water Energy","Énergie Eau",0,"E"],["Lightning-Energy","Lightning Energy","Énergie Électrique",0,"E"],
+["Psychic-Energy","Psychic Energy","Énergie Psy",0,"E"],["Fighting-Energy","Fighting Energy","Énergie Combat",0,"E"]
+];
+/*DATA*/
+
+/* Construction des sets : chaque carte a une clé stable « CODE-n » (ex. EXP-21, B04-17) */
+function buildCards(set,raw,imgFn,urlFn){
+  return raw.map((r,i)=>{const n=i+1;return{
+    key:set.id+"-"+n,n,slug:r[0],en:r[1],fr:r[2]||r[1],dex:r[3],type:r[4],holo:!!r[5],
+    img:imgFn(r,n),url:urlFn(r,n)}});
+}
+const SETS=[];
+// Pages des extensions japonaises sur Cardmarket
+const CM={EXP:"Expansion-Pack",B02:"Pokemon-Jungle",B03:"Mystery-of-the-Fossils",B04:"Rocket-Gang",B05:"Leaders-Stadium",B06:"Challenge-from-the-Darkness"};
+(function(){
+  const exp={id:"EXP",cm:CM.EXP,name:"Expansion Pack",kana:"拡張パック · 第1弾",date:"20 octobre 1996",
+    note:"Le tout premier set : 102 cartes sans numéro imprimé, classées ici dans l'ordre d'impression.",firstPrint:true};
+  exp.cards=buildCards(exp,RAW_EXP,(r,n)=>`https://den-cards.pokellector.com/311/${r[0]}.EXP.${n}.${37250+n}.png`,
+    (r,n)=>`https://jp.pokellector.com/card/${37250+n}/${r[0]}-Expansion-Pack-EXP-${n}`);
+  SETS.push(exp);
+  EXTRA_SETS.forEach(s=>{
+    const set={id:s.id,cm:CM[s.id],name:s.name,kana:s.kana,date:s.date,note:s.note};
+    set.cards=buildCards(set,s.cards,(r,n)=>`https://den-cards.pokellector.com/${s.pk}/${r[6]||r[0]}.${s.id}.${n}.${s.base+n}.png`,
+      (r,n)=>`https://jp.pokellector.com/${s.page}/${r[0]}-Card-${n}`);
+    SETS.push(set);
+  });
+})();
+const ALL=SETS.flatMap(s=>s.cards);
+const ERA_TOTAL=ALL.length;
+
+/* Trophées : communs à tous les sets, plus quelques-uns propres à l'Expansion Pack */
+function trophiesFor(set){
+  const C=set.cards,keys=a=>a.map(c=>c.key),by=n=>C[n-1];
+  const list=[
+    {ico:"⭐",name:"Premier pas",keys:keys(C),min:1},
+  ];
+  if(set.id==="EXP"){
+    list.push({ico:"🌱",name:"Starters de Kanto",keys:[1,14,23].map(n=>by(n).key)});
+    list.push({ico:"🐉",name:"Trio final",keys:[11,21,32].map(n=>by(n).key)});
+  }
+  list.push({ico:"✨",name:"Chasseur d'holos",keys:keys(C.filter(c=>c.holo))});
+  const tr=C.filter(c=>c.type==="T");if(tr.length)list.push({ico:"🎒",name:"Dresseur aguerri",keys:keys(tr)});
+  const en=C.filter(c=>c.type==="E");if(en.length>1)list.push({ico:"⚡",name:"Plein d'énergie",keys:keys(en)});
+  list.push({ico:"🏅",name:"Mi-parcours",keys:keys(C),min:Math.ceil(C.length/2)});
+  list.push({ico:"🏆",name:"Set complet",keys:keys(C)});
+  return list;
+}
+
+/* Stockage */
+const STORE="classeur-pokemon-jap-v1";
+let state={cards:{}};
+try{const s=JSON.parse(localStorage.getItem(STORE)||"null");if(s&&s.cards)state=s}catch(e){}
+function save(){try{localStorage.setItem(STORE,JSON.stringify(state))}catch(e){toast("Impossible d'enregistrer dans ce navigateur : pense à exporter ta sauvegarde.")}}
+const pref=(k,v)=>{try{if(v===undefined)return localStorage.getItem(STORE+"-"+k);localStorage.setItem(STORE+"-"+k,v)}catch(e){return null}};
+const rec=k=>state.cards[k]||(state.cards[k]={qty:0,cond:"",norar:false,notes:"",upg:false,val:"",paid:""});
+const owned=k=>(state.cards[k]?.qty||0)>0;
+
+let cur=null,setIdx=Math.max(0,SETS.findIndex(s=>s.id===pref("set")));
+let view={show:"all",type:"",q:""};
+let sortMode=pref("sort2")||"set";
+let sortDesc=pref("dir")==="desc";
+const grid=document.getElementById("grid");
+const tiles=new Map();
+const emptyMsg=document.createElement("div");emptyMsg.className="empty";emptyMsg.textContent="Aucune carte ne correspond à ces filtres.";
+const SET=()=>SETS[setIdx];
+
+const typeLabel=c=>TYPES[c.type][0];
+const pad=n=>String(n).padStart(3,"0");
+const esc=s=>s.replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+
+function tile(c){
+  const d=document.createElement("div");
+  d.className="card"+(c.holo?" holo":"");d.dataset.key=c.key;
+  d.innerHTML=`<button class="pic" aria-label="Fiche de ${esc(c.fr)}"><span class="ph">${esc(c.fr)}</span><img loading="lazy" referrerpolicy="no-referrer" alt="${esc(c.fr)}" src="${c.img}"></button>
+  <span class="qty" hidden></span>
+  <button class="tick"></button>
+  <div class="cap"><strong>${esc(c.fr)}</strong><span class="num"></span></div>
+  <div class="sub" style="--dot:var(${TYPES[c.type][1]})"><span class="dot"></span><span class="alt"></span>${c.holo?' <span class="holo-tag">Holo</span>':""}<span class="tags"></span></div>`;
+  const img=d.querySelector("img");img.onerror=()=>{img.hidden=true};
+  img.onload=()=>{d.querySelector(".ph").hidden=true};
+  d.querySelector(".pic").onclick=()=>openSheet(c);
+  if(c.holo)holoTilt(d.querySelector(".pic"));
+  d.querySelector(".tick").onclick=()=>toggle(c,true);
+  return d;
+}
+const reduceMotion=matchMedia("(prefers-reduced-motion: reduce)").matches;
+function holoTilt(el){
+  if(reduceMotion)return;
+  const move=e=>{const r=el.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+    el.style.setProperty("--mx",x*100+"%");el.style.setProperty("--my",y*100+"%");
+    if(el.classList.contains("big"))return;
+    el.style.setProperty("--ry",(x-.5)*14+"deg");el.style.setProperty("--rx",(.5-y)*14+"deg");el.classList.add("tilt")};
+  const leave=()=>{el.classList.remove("tilt");el.style.setProperty("--mx","50%");el.style.setProperty("--my","50%")};
+  el.addEventListener("pointermove",move);el.addEventListener("pointerleave",leave);el.addEventListener("pointerup",e=>{if(e.pointerType!=="mouse")leave()});
+}
+function paintTile(c){
+  const t=tiles.get(c.key);if(!t)return;
+  const q=state.cards[c.key]?.qty||0,o=q>0;
+  t.classList.toggle("owned",o);
+  const tk=t.querySelector(".tick");tk.textContent=o?"✓":"+";tk.setAttribute("aria-label",o?`Retirer ${c.fr} de ma collection`:`J'ai ${c.fr}`);
+  const qb=t.querySelector(".qty");qb.hidden=q<2;qb.textContent="×"+q;
+  const r=state.cards[c.key]||{},tg=t.querySelector(".tags");tg.innerHTML="";
+  if(r.cond){const s=document.createElement("span");s.className="cond";s.textContent=r.cond;tg.appendChild(s)}
+  if(r.upg){const s=document.createElement("span");s.className="upg-tag";s.textContent="↑ À upgrader";tg.appendChild(s)}
+}
+function sortCards(){
+  const list=[...SET().cards],k=sortDesc?-1:1;
+  // N° imprimé = N° Pokédex (bas droite des cartes jap vintage) ; Dresseurs et Énergies, sans numéro, restent à la fin
+  if(sortMode==="dex")list.sort((a,b)=>(a.dex?0:1)-(b.dex?0:1)||k*(a.dex-b.dex)||k*(a.n-b.n));
+  else if(sortMode==="name")list.sort((a,b)=>k*a.fr.localeCompare(b.fr,"fr"));
+  else list.sort((a,b)=>k*(a.n-b.n));
+  list.forEach(c=>{
+    const t=tiles.get(c.key),dexMode=sortMode==="dex"&&c.dex;
+    // Le numéro mis en avant suit le tri : N° Pokédex en tri Pokédex, n° dans le set sinon
+    t.querySelector(".num").textContent=dexMode?"N° "+pad(c.dex):"#"+pad(c.n);
+    t.querySelector(".alt").textContent=dexMode?"#"+pad(c.n)+" du set":(c.dex?"N° "+pad(c.dex):typeLabel(c));
+    grid.appendChild(t)});
+  grid.appendChild(emptyMsg);
+}
+const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+function applyFilters(){
+  const q=norm(view.q.trim());let vis=0;
+  SET().cards.forEach(c=>{
+    let ok=true;const o=owned(c.key);
+    if(view.show==="own"&&!o)ok=false;
+    if(view.show==="miss"&&o)ok=false;
+    if(view.show==="upg"&&!state.cards[c.key]?.upg)ok=false;
+    if(view.type&&c.type!==view.type)ok=false;
+    if(q){const hay=norm(`${c.fr} ${c.en} ${c.n} ${pad(c.n)} ${c.dex?pad(c.dex):""}`);if(!hay.includes(q))ok=false}
+    tiles.get(c.key).hidden=!ok;if(ok)vis++;
+  });
+  emptyMsg.hidden=vis>0;
+  document.getElementById("resetFilters").hidden=view.show==="all"&&!view.type&&!view.q.trim();
+}
+
+/* Onglets des sets */
+const setsNav=document.getElementById("sets");
+SETS.forEach((s,i)=>{const b=document.createElement("button");b.className="set";b.dataset.i=i;
+  b.innerHTML=`<span class="code">${s.id}</span><b>${esc(s.name)}</b><span class="mini"><i></i></span><small></small>`;
+  b.onclick=()=>selectSet(i);setsNav.appendChild(b)});
+function paintSets(){
+  let haveAll=0;
+  SETS.forEach((s,i)=>{const have=s.cards.filter(c=>owned(c.key)).length;haveAll+=have;
+    const b=setsNav.children[i];b.setAttribute("aria-pressed",i===setIdx);b.classList.toggle("done",have===s.cards.length);
+    b.querySelector("i").style.width=(have/s.cards.length*100)+"%";b.querySelector("small").textContent=`${have} / ${s.cards.length}`});
+  document.getElementById("eraCount").textContent=`${haveAll} / ${ERA_TOTAL} cartes · ${Math.round(haveAll/ERA_TOTAL*100)} %`;
+}
+
+let wonBefore={};
+function paintStats(){
+  const s=SET(),C=s.cards,have=C.filter(c=>owned(c.key)).length,pct=Math.round(have/C.length*100);
+  document.getElementById("pct").textContent=pct+" %";
+  document.getElementById("count").textContent=`${have} / ${C.length} cartes`;
+  document.getElementById("barfill").style.width=(have/C.length*100)+"%";
+  let tot=0,paid=0;ALL.forEach(c=>{const r=state.cards[c.key];if(r&&r.qty>0){tot+=(parseFloat(r.val)||0)*r.qty;paid+=parseFloat(r.paid)||0}});
+  const eur=v=>v.toLocaleString("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0});
+  document.getElementById("value").textContent=tot||paid?`Collection : valeur ${eur(tot)} · payé ${eur(paid)}`:"";
+  const box=document.getElementById("trophies");box.innerHTML="";const won=[];
+  trophiesFor(s).forEach(t=>{const goal=t.min||t.keys.length,got=Math.min(goal,t.keys.filter(owned).length),w=got>=goal;if(w)won.push(t.name);
+    const el=document.createElement("div");el.className="trophy"+(w?" won":"");
+    el.innerHTML=`<span class="medal" aria-hidden="true">${t.ico}</span><span><strong>${t.name}</strong><small>${w?"Débloqué":got+" / "+goal}</small></span>`;box.appendChild(el)});
+  const before=wonBefore[s.id];
+  if(before){const fresh=won.filter(n=>!before.includes(n));if(fresh.length){toast(`${s.name} : ${fresh.join(", ")} 🎉`);confetti()}}
+  wonBefore[s.id]=won;
+  paintSets();
+}
+
+function selectSet(i){
+  setIdx=i;pref("set",SET().id);
+  const s=SET();
+  document.getElementById("h-kana").textContent=s.kana;
+  document.getElementById("h-name").textContent=s.name;
+  document.getElementById("h-meta").textContent=`Sorti le ${s.date} · ${s.cards.length} cartes · ${s.note}`;
+  grid.innerHTML="";tiles.clear();
+  s.cards.forEach(c=>{const t=tile(c);tiles.set(c.key,t);paintTile(c)});
+  sortCards();paintStats();applyFilters();
+}
+
+function toggle(c,fromTile){
+  const r=rec(c.key);r.qty=r.qty>0?0:1;save();paintTile(c);paintStats();applyFilters();
+  if(fromTile&&r.qty){const t=tiles.get(c.key);t.classList.remove("pop");void t.offsetWidth;t.classList.add("pop")}
+  if(cur===c)fillSheet();
+}
+
+/* Fiche */
+const dlg=document.getElementById("dlg");
+holoTilt(document.querySelector(".big"));
+function openSheet(c){cur=c;fillSheet();if(dlg.showModal)dlg.showModal();else dlg.setAttribute("open","")}
+function fillSheet(){
+  const c=cur,r=rec(c.key),s=SETS.find(x=>c.key.startsWith(x.id+"-"));
+  document.getElementById("d-img").src=c.img;document.getElementById("d-img").alt=c.fr;
+  document.querySelector(".big").classList.toggle("holo",c.holo);
+  document.getElementById("d-foil-lbl").hidden=!c.holo;
+  document.getElementById("d-num").textContent=`${s.name} · #${pad(c.n)} / ${s.cards.length}`;
+  document.getElementById("d-name").textContent=c.fr;
+  document.getElementById("d-sub").innerHTML=`<span class="dot" style="--dot:var(${TYPES[c.type][1]})"></span>${typeLabel(c)}${c.dex?" · N° "+pad(c.dex):""}${c.en!==c.fr?" · "+esc(c.en):""}${c.holo?' · <span class="holo-tag">Holo</span>':""}`;
+  const b=document.getElementById("d-toggle");b.textContent=r.qty>0?"✓ Je l'ai (retirer)":"+ Je l'ai";b.className="btn "+(r.qty>0?"ok":"primary");
+  document.getElementById("d-qty").textContent=r.qty;
+  document.getElementById("d-cond").value=r.cond||"";
+  document.getElementById("d-norar").checked=!!r.norar;
+  document.getElementById("d-norar").closest("label").hidden=!s.firstPrint;
+  document.getElementById("d-notes").value=r.notes||"";
+  document.getElementById("d-link").href=c.url;
+  document.getElementById("d-upg").checked=!!r.upg;
+  document.getElementById("d-val").value=r.val||"";
+  document.getElementById("d-paid").value=r.paid||"";
+  // Cardmarket : la page de l'extension japonaise exacte, filtrée sur le nom de la carte
+  const cmName=c.en.replace(/[♀♂!?#]/g,"").replace(/_+/g,"").replace(/\s+/g," ").trim();
+  document.getElementById("d-cm").href=`https://www.cardmarket.com/fr/Pokemon/Products/Singles/${s.cm}?searchString=${encodeURIComponent(cmName)}`;
+  document.getElementById("d-eb").href="https://www.ebay.fr/sch/i.html?LH_Sold=1&LH_Complete=1&_nkw="+encodeURIComponent(`${c.en} ${s.name} japanese`);
+}
+document.getElementById("d-toggle").onclick=()=>toggle(cur);
+document.getElementById("d-plus").onclick=()=>{const r=rec(cur.key);const was=r.qty;r.qty++;save();fillSheet();paintTile(cur);if(!was){paintStats();applyFilters()}};
+document.getElementById("d-minus").onclick=()=>{const r=rec(cur.key);if(r.qty>0){r.qty--;save();fillSheet();paintTile(cur);if(!r.qty){paintStats();applyFilters()}}};
+document.getElementById("d-cond").onchange=e=>{rec(cur.key).cond=e.target.value;save();paintTile(cur)};
+document.getElementById("d-upg").onchange=e=>{rec(cur.key).upg=e.target.checked;save();paintTile(cur);applyFilters()};
+document.getElementById("d-norar").onchange=e=>{rec(cur.key).norar=e.target.checked;save()};
+document.getElementById("d-val").oninput=e=>{rec(cur.key).val=e.target.value;save();paintStats()};
+document.getElementById("d-paid").oninput=e=>{rec(cur.key).paid=e.target.value;save();paintStats()};
+document.getElementById("d-notes").oninput=e=>{rec(cur.key).notes=e.target.value;save()};
+document.getElementById("d-close").onclick=()=>dlg.close?dlg.close():dlg.removeAttribute("open");
+dlg.addEventListener("click",e=>{if(e.target===dlg)dlg.close()});
+
+/* Filtres et tri */
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{view.show=b.dataset.show;document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",x===b));applyFilters()});
+const typesBox=document.getElementById("types");
+["G","F","W","L","P","Fi","C","T","E"].forEach(t=>{const b=document.createElement("button");b.className="chip";b.setAttribute("aria-pressed","false");b.style.setProperty("--dot",`var(${TYPES[t][1]})`);b.innerHTML=`<i></i>${TYPES[t][0]}`;
+  b.onclick=()=>{view.type=view.type===t?"":t;typesBox.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===b&&view.type===t));applyFilters()};typesBox.appendChild(b)});
+document.getElementById("q").oninput=e=>{view.q=e.target.value;applyFilters()};
+const sortSel=document.getElementById("sort");sortSel.value=sortMode;
+sortSel.onchange=()=>{sortMode=sortSel.value;pref("sort2",sortMode);sortCards()};
+const dirBtn=document.getElementById("dirBtn");
+function paintDir(){dirBtn.textContent=sortDesc?"↓ Décroissant":"↑ Croissant";dirBtn.setAttribute("aria-pressed",sortDesc)}
+dirBtn.onclick=()=>{sortDesc=!sortDesc;pref("dir",sortDesc?"desc":"asc");paintDir();sortCards()};
+paintDir();
+/* Effet holo : réglage global, modifiable depuis la barre d'outils ou la fiche */
+let foilOn=pref("foil")!=="off";
+function setFoil(on){foilOn=on;pref("foil",on?"on":"off");document.body.classList.toggle("foil-off",!on);
+  const b=document.getElementById("foilBtn");b.setAttribute("aria-pressed",on);b.textContent=on?"✨ Effet holo : oui":"✨ Effet holo : non";
+  document.getElementById("d-foil").checked=on}
+document.getElementById("foilBtn").onclick=()=>setFoil(!foilOn);
+document.getElementById("d-foil").onchange=e=>setFoil(e.target.checked);
+setFoil(foilOn);
+document.getElementById("resetFilters").onclick=()=>{
+  view={show:"all",type:"",q:""};
+  document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.show==="all"));
+  typesBox.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed","false"));
+  document.getElementById("q").value="";applyFilters();
+};
+
+/* Sauvegarde */
+function refreshAll(){wonBefore={};selectSet(setIdx)}
+document.getElementById("exportBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify({app:"classeur-pokemon-jap",version:2,date:new Date().toISOString(),...state},null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="sauvegarde-pokemon-jap-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();a.remove();
+  toast("Sauvegarde téléchargée 💾")};
+document.getElementById("importFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d.cards)throw 0;state={cards:d.cards};save();refreshAll();toast("Sauvegarde importée ✅")}catch(err){toast("Ce fichier n'est pas une sauvegarde du classeur.")}};
+  rd.readAsText(f);e.target.value=""};
+const rz=document.getElementById("resetZone");
+function resetIdle(){rz.innerHTML='<button class="btn" id="resetBtn">Tout réinitialiser</button>';document.getElementById("resetBtn").onclick=()=>{
+  rz.innerHTML='<span>Effacer toute la collection (tous les sets) ?</span><button class="btn primary" id="rYes">Oui, effacer</button><button class="btn" id="rNo">Annuler</button>';
+  document.getElementById("rNo").onclick=resetIdle;
+  document.getElementById("rYes").onclick=()=>{state={cards:{}};save();refreshAll();resetIdle();toast("Collection remise à zéro")}}}
+resetIdle();
+
+/* Toast + confettis */
+let tt;function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),3200)}
+function confetti(){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  const cv=document.getElementById("confetti"),ctx=cv.getContext("2d");cv.width=innerWidth;cv.height=innerHeight;
+  const cs=getComputedStyle(document.documentElement),cols=["--accent","--gold","--w","--g","--l"].map(v=>cs.getPropertyValue(v).trim());
+  const ps=Array.from({length:120},()=>({x:Math.random()*cv.width,y:-20-Math.random()*cv.height*.4,vx:(Math.random()-.5)*3,vy:2+Math.random()*4,r:4+Math.random()*5,c:cols[Math.random()*cols.length|0],a:Math.random()*6}));
+  let f=0;(function step(){ctx.clearRect(0,0,cv.width,cv.height);ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.a+=.1;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.fillStyle=p.c;ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6);ctx.restore()});
+    if(++f<160)requestAnimationFrame(step);else ctx.clearRect(0,0,cv.width,cv.height)})();
+}
+
+selectSet(setIdx);
+</script>
+</body>
+</html>

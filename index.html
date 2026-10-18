@@ -251,6 +251,7 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:19}
       <span class="seg" id="d-lang">
         <button type="button" data-lang="FR" aria-pressed="false">Français</button>
         <button type="button" data-lang="EN" aria-pressed="false">Anglais</button>
+        <button type="button" data-lang="JP" aria-pressed="false">Japonais</button>
       </span>
     </div>
     <label for="d-cond">État
@@ -457,7 +458,7 @@ function paintTile(c){
   const tk=t.querySelector(".tick");tk.textContent=o?"✓":"+";tk.setAttribute("aria-label",o?`Retirer ${c.fr} de ma collection`:`J'ai ${c.fr}`);
   const qb=t.querySelector(".qty");qb.hidden=q<2;qb.textContent="×"+q;
   const r=state.cards[c.key]||{},tg=t.querySelector(".tags");tg.innerHTML="";
-  if(r.lang&&o){const s=document.createElement("span");s.className="cond";s.textContent=r.lang==="FR"?"🇫🇷 FR":"🇬🇧 EN";tg.appendChild(s)}
+  if(r.lang&&o){const s=document.createElement("span");s.className="cond";s.textContent={FR:"🇫🇷 FR",EN:"🇬🇧 EN",JP:"🇯🇵 JP"}[r.lang]||r.lang;tg.appendChild(s)}
   if(r.cond){const s=document.createElement("span");s.className="cond";s.textContent=r.cond;tg.appendChild(s)}
   if(r.upg){const s=document.createElement("span");s.className="upg-tag";s.textContent="↑ À upgrader";tg.appendChild(s)}
 }
@@ -602,7 +603,8 @@ function fillSheet(){
   document.getElementById("d-link").href=c.url||"#";document.getElementById("d-link").hidden=!c.url;
   document.getElementById("d-upg").checked=!!r.upg;
   // Langue de l'exemplaire : seulement pour les cartes internationales (existantes en français et en anglais)
-  document.getElementById("d-lang-row").hidden=!(s.en&&c.lang==="EN");
+  // Langue de l'exemplaire : pour toutes les cartes des onglets thématiques hors extensions vintage du classeur
+  document.getElementById("d-lang-row").hidden=!s.en;
   document.querySelectorAll("#d-lang button").forEach(b=>b.setAttribute("aria-pressed",r.lang===b.dataset.lang));
   document.getElementById("d-val").value=r.val||"";
   document.getElementById("d-paid").value=r.paid||"";

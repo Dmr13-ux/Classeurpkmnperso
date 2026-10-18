@@ -49,6 +49,10 @@ button,input,select,textarea{font:inherit;color:inherit}
 .set .mini i{display:block;height:100%;background:var(--accent)}
 .set.done .mini i{background:var(--gold)}
 .set small{font:11px var(--mono);color:var(--muted)}
+.sets .sep{flex:0 0 auto;align-self:center;writing-mode:vertical-rl;transform:rotate(180deg);font:11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-left:1px solid var(--line);padding-left:8px}
+.set.theme{background:color-mix(in srgb,var(--accent) 7%,var(--surface))}
+.set.theme .code{color:var(--accent)}
+.search-info{margin:0 0 14px;font-weight:700;color:var(--accent)}
 
 /* En-tête du set */
 header{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end;padding-block:20px;border-bottom:2px solid var(--ink)}
@@ -196,9 +200,10 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:19}
     <div class="chips" id="types"></div>
     <button class="chip" id="foilBtn" aria-pressed="true">✨ Effet holo : oui</button>
     <button class="reset-f" id="resetFilters" hidden>✕ Réinitialiser les filtres</button>
-    <input class="search" id="q" type="search" placeholder="Chercher (Dracaufeu, Charizard, n° 006…)" aria-label="Chercher une carte">
+    <input class="search" id="q" type="search" placeholder="Chercher dans tout le classeur (Dracaufeu, Arcanin, 006…)" aria-label="Chercher une carte">
   </div>
 
+  <p class="search-info" id="searchInfo" hidden></p>
   <div class="grid" id="grid"></div>
 
   <footer>
@@ -258,7 +263,8 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:19}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const TYPES={G:["Plante","--g"],F:["Feu","--f"],W:["Eau","--w"],L:["Électrique","--l"],P:["Psy","--p"],Fi:["Combat","--fi"],C:["Incolore","--c"],T:["Dresseur","--t"],E:["Énergie","--t"]};
+const TYPES={G:["Plante","--g"],F:["Feu","--f"],W:["Eau","--w"],L:["Électrique","--l"],P:["Psy","--p"],Fi:["Combat","--fi"],C:["Incolore","--c"],M:["Métal","--c"],T:["Dresseur","--t"],E:["Énergie","--t"]};
+const pad=n=>String(n).padStart(3,"0");
 // Expansion Pack : [slug Pokellector, nom anglais, nom français, n° Pokédex, type, holo]
 const RAW_EXP=[
 ["Bulbasaur","Bulbasaur","Bulbizarre",1,"G"],["Caterpie","Caterpie","Chenipan",10,"G"],["Metapod","Metapod","Chrysacier",11,"G"],
@@ -326,6 +332,28 @@ const CM={EXP:"Expansion-Pack",B02:"Pokemon-Jungle",B03:"Mystery-of-the-Fossils"
 })();
 const ALL=SETS.flatMap(s=>s.cards);
 const ERA_TOTAL=ALL.length;
+// Dates de sortie japonaises (pour classer chronologiquement les cartes dans les onglets thématiques et la recherche)
+const JP_DATE={EXP:"1996-10-20",B02:"1997-03-01",B03:"1997-06-27",B04:"1997-11-21",B05:"1998-10-24",B06:"1999-06-25"};
+SETS.forEach(s=>s.cards.forEach(c=>{c.src=s;c.origN=c.n;c.date=JP_DATE[s.id];c.lang="JP";c.setLabel=s.name+" #"+pad(c.n)}));
+const BYKEY=new Map(ALL.map(c=>[c.key,c]));
+
+/* Onglets thématiques : cartes japonaises du classeur (mêmes clés, donc cochées des deux côtés) + cartes internationales */
+// Slugs Cardmarket des extensions internationales : nom de l'extension, mots séparés par des tirets (quelques exceptions)
+const CM_EN={"Base":"Base-Set","FireRed & LeafGreen":"FireRed-LeafGreen","HeartGold & SoulSilver":"HeartGold-SoulSilver",
+  "Sun & Moon":"Sun-Moon","Sword & Shield":"Sword-Shield","Scarlet & Violet":"Scarlet-Violet","Team Magma vs Team Aqua":"Team-Magma-vs-Team-Aqua"};
+const CM_SKIP=/Promos|McDonald|Trainer Kit|POP Series|Shiny Vault|Trainer Gallery/;
+function cmSlugEN(set){if(CM_SKIP.test(set))return null;return CM_EN[set]||set.replace(/&/g,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"")}
+const THEME_TABS=THEMES.map(t=>{
+  const tab={id:t.id,name:t.name,kana:t.kana,note:t.note,theme:true};
+  const jp=t.jp.map(([sid,n])=>({...BYKEY.get(sid+"-"+n)}));
+  const en=t.en.map(c=>({...c,n:0,src:{name:c.set,cm:cmSlugEN(c.set),en:true},setLabel:c.set+" #"+c.num,url:null}));
+  tab.cards=[...jp,...en].sort((a,b)=>a.date.localeCompare(b.date)||(a.origN||0)-(b.origN||0));
+  tab.cards.forEach((c,i)=>{c.n=i+1});
+  return tab;
+});
+const TABS=[...SETS,...THEME_TABS];
+// Toutes les cartes uniques (pour la recherche globale et la valeur totale de la collection)
+const UNIQUE=[...new Map([...ALL,...THEME_TABS.flatMap(t=>t.cards.filter(c=>c.lang==="EN"))].map(c=>[c.key,c])).values()];
 
 /* Trophées : communs à tous les sets, plus quelques-uns propres à l'Expansion Pack */
 function trophiesFor(set){
@@ -341,7 +369,7 @@ function trophiesFor(set){
   const tr=C.filter(c=>c.type==="T");if(tr.length)list.push({ico:"🎒",name:"Dresseur aguerri",keys:keys(tr)});
   const en=C.filter(c=>c.type==="E");if(en.length>1)list.push({ico:"⚡",name:"Plein d'énergie",keys:keys(en)});
   list.push({ico:"🏅",name:"Mi-parcours",keys:keys(C),min:Math.ceil(C.length/2)});
-  list.push({ico:"🏆",name:"Set complet",keys:keys(C)});
+  list.push({ico:"🏆",name:set.theme?"Collection complète":"Set complet",keys:keys(C)});
   return list;
 }
 
@@ -354,17 +382,18 @@ const pref=(k,v)=>{try{if(v===undefined)return localStorage.getItem(STORE+"-"+k)
 const rec=k=>state.cards[k]||(state.cards[k]={qty:0,cond:"",norar:false,notes:"",upg:false,val:"",paid:""});
 const owned=k=>(state.cards[k]?.qty||0)>0;
 
-let cur=null,setIdx=Math.max(0,SETS.findIndex(s=>s.id===pref("set")));
+let cur=null,setIdx=Math.max(0,TABS.findIndex(s=>s.id===pref("set")));
+let curList=[];   // cartes affichées : l'onglet courant, ou les résultats de la recherche globale
 let view={show:"all",type:"",q:""};
 let sortMode=pref("sort2")||"set";
 let sortDesc=pref("dir")==="desc";
 const grid=document.getElementById("grid");
 const tiles=new Map();
 const emptyMsg=document.createElement("div");emptyMsg.className="empty";emptyMsg.textContent="Aucune carte ne correspond à ces filtres.";
-const SET=()=>SETS[setIdx];
+const SET=()=>TABS[setIdx];
+const searching=()=>view.q.trim().length>0;
 
 const typeLabel=c=>TYPES[c.type][0];
-const pad=n=>String(n).padStart(3,"0");
 const esc=s=>s.replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
 
 function tile(c){
@@ -403,29 +432,46 @@ function paintTile(c){
   if(r.upg){const s=document.createElement("span");s.className="upg-tag";s.textContent="↑ À upgrader";tg.appendChild(s)}
 }
 function sortCards(){
-  const list=[...SET().cards],k=sortDesc?-1:1;
+  const list=[...curList],k=sortDesc?-1:1;
+  const mixed=searching()||SET().theme;   // plusieurs extensions mélangées : on classe et on étiquette par date
   // N° imprimé = N° Pokédex (bas droite des cartes jap vintage) ; Dresseurs et Énergies, sans numéro, restent à la fin
-  if(sortMode==="dex")list.sort((a,b)=>(a.dex?0:1)-(b.dex?0:1)||k*(a.dex-b.dex)||k*(a.n-b.n));
+  if(sortMode==="dex")list.sort((a,b)=>(a.dex?0:1)-(b.dex?0:1)||k*(a.dex-b.dex)||k*a.date.localeCompare(b.date)||k*(a.n-b.n));
   else if(sortMode==="name")list.sort((a,b)=>k*a.fr.localeCompare(b.fr,"fr"));
+  else if(mixed)list.sort((a,b)=>k*a.date.localeCompare(b.date)||k*((a.origN||a.n)-(b.origN||b.n)));
   else list.sort((a,b)=>k*(a.n-b.n));
   list.forEach(c=>{
     const t=tiles.get(c.key),dexMode=sortMode==="dex"&&c.dex;
-    // Le numéro mis en avant suit le tri : N° Pokédex en tri Pokédex, n° dans le set sinon
-    t.querySelector(".num").textContent=dexMode?"N° "+pad(c.dex):"#"+pad(c.n);
-    t.querySelector(".alt").textContent=dexMode?"#"+pad(c.n)+" du set":(c.dex?"N° "+pad(c.dex):typeLabel(c));
+    // Le numéro mis en avant suit le tri : N° Pokédex, année (onglets thématiques, recherche) ou n° dans le set
+    t.querySelector(".num").textContent=dexMode?"N° "+pad(c.dex):mixed?c.date.slice(0,4):"#"+pad(c.n);
+    t.querySelector(".alt").textContent=mixed?`${c.setLabel} · ${c.lang}`:dexMode?"#"+pad(c.n)+" du set":(c.dex?"N° "+pad(c.dex):typeLabel(c));
     grid.appendChild(t)});
   grid.appendChild(emptyMsg);
+}
+function render(list){
+  curList=list;grid.innerHTML="";tiles.clear();
+  list.forEach(c=>{const t=tile(c);tiles.set(c.key,t);paintTile(c)});
+  sortCards();applyFilters();
+}
+/* Recherche globale : nom français, anglais, n° Pokédex, extension — dans tout le classeur */
+function searchAll(q){
+  const nq=norm(q.trim());
+  return UNIQUE.filter(c=>norm(`${c.fr} ${c.en} ${c.dex?pad(c.dex):""} ${c.setLabel}`).includes(nq));
+}
+function refreshView(){
+  const info=document.getElementById("searchInfo");
+  if(searching()){const res=searchAll(view.q);render(res);info.hidden=false;
+    info.textContent=`Recherche dans tout le classeur : ${res.length} carte${res.length>1?"s":""} pour « ${view.q.trim()} »`;}
+  else{info.hidden=true;render(SET().cards)}
 }
 const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
 function applyFilters(){
   const q=norm(view.q.trim());let vis=0;
-  SET().cards.forEach(c=>{
+  curList.forEach(c=>{
     let ok=true;const o=owned(c.key);
     if(view.show==="own"&&!o)ok=false;
     if(view.show==="miss"&&o)ok=false;
     if(view.show==="upg"&&!state.cards[c.key]?.upg)ok=false;
     if(view.type&&c.type!==view.type)ok=false;
-    if(q){const hay=norm(`${c.fr} ${c.en} ${c.n} ${pad(c.n)} ${c.dex?pad(c.dex):""}`);if(!hay.includes(q))ok=false}
     tiles.get(c.key).hidden=!ok;if(ok)vis++;
   });
   emptyMsg.hidden=vis>0;
@@ -434,13 +480,16 @@ function applyFilters(){
 
 /* Onglets des sets */
 const setsNav=document.getElementById("sets");
-SETS.forEach((s,i)=>{const b=document.createElement("button");b.className="set";b.dataset.i=i;
-  b.innerHTML=`<span class="code">${s.id}</span><b>${esc(s.name)}</b><span class="mini"><i></i></span><small></small>`;
-  b.onclick=()=>selectSet(i);setsNav.appendChild(b)});
+const tabBtns=[];
+TABS.forEach((s,i)=>{
+  if(s.theme&&!TABS[i-1].theme){const sep=document.createElement("span");sep.className="sep";sep.textContent="Collections";setsNav.appendChild(sep)}
+  const b=document.createElement("button");b.className="set"+(s.theme?" theme":"");
+  b.innerHTML=`<span class="code">${s.theme?"THÈME":s.id}</span><b>${esc(s.name)}</b><span class="mini"><i></i></span><small></small>`;
+  b.onclick=()=>selectSet(i);setsNav.appendChild(b);tabBtns.push(b)});
 function paintSets(){
   let haveAll=0;
-  SETS.forEach((s,i)=>{const have=s.cards.filter(c=>owned(c.key)).length;haveAll+=have;
-    const b=setsNav.children[i];b.setAttribute("aria-pressed",i===setIdx);b.classList.toggle("done",have===s.cards.length);
+  TABS.forEach((s,i)=>{const have=s.cards.filter(c=>owned(c.key)).length;if(!s.theme)haveAll+=have;
+    const b=tabBtns[i];b.setAttribute("aria-pressed",i===setIdx&&!searching());b.classList.toggle("done",have===s.cards.length);
     b.querySelector("i").style.width=(have/s.cards.length*100)+"%";b.querySelector("small").textContent=`${have} / ${s.cards.length}`});
   document.getElementById("eraCount").textContent=`${haveAll} / ${ERA_TOTAL} cartes · ${Math.round(haveAll/ERA_TOTAL*100)} %`;
 }
@@ -451,7 +500,7 @@ function paintStats(){
   document.getElementById("pct").textContent=pct+" %";
   document.getElementById("count").textContent=`${have} / ${C.length} cartes`;
   document.getElementById("barfill").style.width=(have/C.length*100)+"%";
-  let tot=0,paid=0;ALL.forEach(c=>{const r=state.cards[c.key];if(r&&r.qty>0){tot+=(parseFloat(r.val)||0)*r.qty;paid+=parseFloat(r.paid)||0}});
+  let tot=0,paid=0;UNIQUE.forEach(c=>{const r=state.cards[c.key];if(r&&r.qty>0){tot+=(parseFloat(r.val)||0)*r.qty;paid+=parseFloat(r.paid)||0}});
   const eur=v=>v.toLocaleString("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0});
   document.getElementById("value").textContent=tot||paid?`Collection : valeur ${eur(tot)} · payé ${eur(paid)}`:"";
   const box=document.getElementById("trophies");box.innerHTML="";const won=[];
@@ -469,10 +518,10 @@ function selectSet(i){
   const s=SET();
   document.getElementById("h-kana").textContent=s.kana;
   document.getElementById("h-name").textContent=s.name;
-  document.getElementById("h-meta").textContent=`Sorti le ${s.date} · ${s.cards.length} cartes · ${s.note}`;
-  grid.innerHTML="";tiles.clear();
-  s.cards.forEach(c=>{const t=tile(c);tiles.set(c.key,t);paintTile(c)});
-  sortCards();paintStats();applyFilters();
+  document.getElementById("h-meta").textContent=s.theme?`${s.cards.length} cartes, japonaises et internationales · ${s.note}`:`Sorti le ${s.date} · ${s.cards.length} cartes · ${s.note}`;
+  // Changer d'onglet referme la recherche globale
+  if(searching()){view.q="";document.getElementById("q").value=""}
+  refreshView();paintStats();
 }
 
 function toggle(c,fromTile){
@@ -486,11 +535,12 @@ const dlg=document.getElementById("dlg");
 holoTilt(document.querySelector(".big"));
 function openSheet(c){cur=c;fillSheet();if(dlg.showModal)dlg.showModal();else dlg.setAttribute("open","")}
 function fillSheet(){
-  const c=cur,r=rec(c.key),s=SETS.find(x=>c.key.startsWith(x.id+"-"));
+  const c=cur,r=rec(c.key),s=c.src;
   document.getElementById("d-img").src=c.img;document.getElementById("d-img").alt=c.fr;
   document.querySelector(".big").classList.toggle("holo",c.holo);
   document.getElementById("d-foil-lbl").hidden=!c.holo;
-  document.getElementById("d-num").textContent=`${s.name} · #${pad(c.n)} / ${s.cards.length}`;
+  document.getElementById("d-num").textContent=s.en?`${c.set} · #${c.num} · ${c.date.slice(0,4)} · carte internationale${c.rarity?" · "+c.rarity:""}`
+    :`${s.name} · #${pad(c.origN)} / ${s.cards.length} · ${c.date.slice(0,4)} · carte japonaise`;
   document.getElementById("d-name").textContent=c.fr;
   document.getElementById("d-sub").innerHTML=`<span class="dot" style="--dot:var(${TYPES[c.type][1]})"></span>${typeLabel(c)}${c.dex?" · N° "+pad(c.dex):""}${c.en!==c.fr?" · "+esc(c.en):""}${c.holo?' · <span class="holo-tag">Holo</span>':""}`;
   const b=document.getElementById("d-toggle");b.textContent=r.qty>0?"✓ Je l'ai (retirer)":"+ Je l'ai";b.className="btn "+(r.qty>0?"ok":"primary");
@@ -499,14 +549,15 @@ function fillSheet(){
   document.getElementById("d-norar").checked=!!r.norar;
   document.getElementById("d-norar").closest("label").hidden=!s.firstPrint;
   document.getElementById("d-notes").value=r.notes||"";
-  document.getElementById("d-link").href=c.url;
+  document.getElementById("d-link").href=c.url||"#";document.getElementById("d-link").hidden=!c.url;
   document.getElementById("d-upg").checked=!!r.upg;
   document.getElementById("d-val").value=r.val||"";
   document.getElementById("d-paid").value=r.paid||"";
-  // Cardmarket : la page de l'extension japonaise exacte, filtrée sur le nom de la carte
-  const cmName=c.en.replace(/[♀♂!?#]/g,"").replace(/_+/g,"").replace(/\s+/g," ").trim();
-  document.getElementById("d-cm").href=`https://www.cardmarket.com/fr/Pokemon/Products/Singles/${s.cm}?searchString=${encodeURIComponent(cmName)}`;
-  document.getElementById("d-eb").href="https://www.ebay.fr/sch/i.html?LH_Sold=1&LH_Complete=1&_nkw="+encodeURIComponent(`${c.en} ${s.name} japanese`);
+  // Cardmarket : la page de l'extension exacte, filtrée sur le nom de la carte (recherche générale pour les promos)
+  const cmName=c.en.replace(/[♀♂!?#δ]/g,"").replace(/_+/g,"").replace(/-GX/," GX").replace(/\s+/g," ").trim();
+  document.getElementById("d-cm").href=s.cm?`https://www.cardmarket.com/fr/Pokemon/Products/Singles/${s.cm}?searchString=${encodeURIComponent(cmName)}`
+    :`https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(cmName)}`;
+  document.getElementById("d-eb").href="https://www.ebay.fr/sch/i.html?LH_Sold=1&LH_Complete=1&_nkw="+encodeURIComponent(s.en?`${c.en} ${c.set} ${c.num}`:`${c.en} ${s.name} japanese`);
 }
 document.getElementById("d-toggle").onclick=()=>toggle(cur);
 document.getElementById("d-plus").onclick=()=>{const r=rec(cur.key);const was=r.qty;r.qty++;save();fillSheet();paintTile(cur);if(!was){paintStats();applyFilters()}};
@@ -525,7 +576,7 @@ document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{view.show=b.d
 const typesBox=document.getElementById("types");
 ["G","F","W","L","P","Fi","C","T","E"].forEach(t=>{const b=document.createElement("button");b.className="chip";b.setAttribute("aria-pressed","false");b.style.setProperty("--dot",`var(${TYPES[t][1]})`);b.innerHTML=`<i></i>${TYPES[t][0]}`;
   b.onclick=()=>{view.type=view.type===t?"":t;typesBox.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===b&&view.type===t));applyFilters()};typesBox.appendChild(b)});
-document.getElementById("q").oninput=e=>{view.q=e.target.value;applyFilters()};
+document.getElementById("q").oninput=e=>{view.q=e.target.value;refreshView();paintSets()};
 const sortSel=document.getElementById("sort");sortSel.value=sortMode;
 sortSel.onchange=()=>{sortMode=sortSel.value;pref("sort2",sortMode);sortCards()};
 const dirBtn=document.getElementById("dirBtn");
@@ -544,7 +595,7 @@ document.getElementById("resetFilters").onclick=()=>{
   view={show:"all",type:"",q:""};
   document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.show==="all"));
   typesBox.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed","false"));
-  document.getElementById("q").value="";applyFilters();
+  document.getElementById("q").value="";refreshView();paintSets();
 };
 
 /* Sauvegarde */

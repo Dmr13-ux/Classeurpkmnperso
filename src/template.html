@@ -120,7 +120,7 @@ body.foil-off .card.holo .pic.tilt{transform:none}
 .card.owned .tick{background:var(--ok)}
 .card.pop .tick{animation:pop .45s ease}
 @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
-.qty{position:absolute;left:6px;top:6px;z-index:2;background:var(--ink);color:var(--bg);font:12px var(--mono);border-radius:6px;padding:2px 6px}
+.qty{position:absolute;left:6px;top:6px;z-index:2;background:var(--ink);color:var(--bg);font:13px var(--mono);line-height:1.3;border-radius:6px;padding:2px 6px;box-shadow:0 1px 4px rgba(0,0,0,.35)}
 .cap{display:flex;justify-content:space-between;gap:6px;align-items:baseline;min-width:0}
 .cap strong{font-size:14px;line-height:1.25;overflow-wrap:anywhere}
 .num{font:12px var(--mono);color:var(--muted);white-space:nowrap}
@@ -449,14 +449,21 @@ function holoTilt(el){
   const leave=()=>{el.classList.remove("tilt");el.style.setProperty("--mx","50%");el.style.setProperty("--my","50%")};
   el.addEventListener("pointermove",move);el.addEventListener("pointerleave",leave);el.addEventListener("pointerup",e=>{if(e.pointerType!=="mouse")leave()});
 }
+const FLAGS={FR:"🇫🇷",EN:"🇬🇧",JP:"🇯🇵"},LANG_NAMES={FR:"français",EN:"anglais",JP:"japonais"};
+// Langue par défaut : la dernière choisie, appliquée quand on coche une carte des onglets thématiques
+let lastLang=pref("lang")||"";
+function applyDefaultLang(c){const r=rec(c.key);if(c.src&&c.src.en&&!r.lang&&lastLang)r.lang=lastLang}
 function paintTile(c){
   const t=tiles.get(c.key);if(!t)return;
   const q=state.cards[c.key]?.qty||0,o=q>0;
   t.classList.toggle("owned",o);
   const tk=t.querySelector(".tick");tk.textContent=o?"✓":"+";tk.setAttribute("aria-label",o?`Retirer ${c.fr} de ma collection`:`J'ai ${c.fr}`);
-  const qb=t.querySelector(".qty");qb.hidden=q<2;qb.textContent="×"+q;
-  const r=state.cards[c.key]||{},tg=t.querySelector(".tags");tg.innerHTML="";
-  if(r.lang&&o){const s=document.createElement("span");s.className="cond";s.textContent={FR:"🇫🇷 FR",EN:"🇬🇧 EN",JP:"🇯🇵 JP"}[r.lang]||r.lang;tg.appendChild(s)}
+  const r=state.cards[c.key]||{};
+  // Pastille en haut à gauche de l'image : drapeau de la langue de l'exemplaire et/ou nombre d'exemplaires
+  const flag=o&&r.lang?FLAGS[r.lang]:"";
+  const qb=t.querySelector(".qty");qb.hidden=!(flag||q>1);qb.textContent=[flag,q>1?"×"+q:""].filter(Boolean).join(" ");
+  qb.title=flag?`Mon exemplaire : ${LANG_NAMES[r.lang]}`:"";
+  const tg=t.querySelector(".tags");tg.innerHTML="";
   if(r.cond){const s=document.createElement("span");s.className="cond";s.textContent=r.cond;tg.appendChild(s)}
   if(r.upg){const s=document.createElement("span");s.className="upg-tag";s.textContent="↑ À upgrader";tg.appendChild(s)}
 }
@@ -554,7 +561,7 @@ function selectSet(i){
 }
 
 function toggle(c,fromTile){
-  const r=rec(c.key);r.qty=r.qty>0?0:1;save();paintTile(c);paintStats();applyFilters();
+  const r=rec(c.key);r.qty=r.qty>0?0:1;if(r.qty)applyDefaultLang(c);save();paintTile(c);paintStats();applyFilters();
   if(fromTile&&r.qty){const t=tiles.get(c.key);t.classList.remove("pop");void t.offsetWidth;t.classList.add("pop")}
   if(cur===c)fillSheet();
 }
@@ -600,7 +607,6 @@ function fillSheet(){
   document.getElementById("d-notes").value=r.notes||"";
   document.getElementById("d-link").href=c.url||"#";document.getElementById("d-link").hidden=!c.url;
   document.getElementById("d-upg").checked=!!r.upg;
-  // Langue de l'exemplaire : seulement pour les cartes internationales (existantes en français et en anglais)
   // Langue de l'exemplaire : pour toutes les cartes des onglets thématiques hors extensions vintage du classeur
   document.getElementById("d-lang-row").hidden=!s.en;
   document.querySelectorAll("#d-lang button").forEach(b=>b.setAttribute("aria-pressed",r.lang===b.dataset.lang));
@@ -613,11 +619,12 @@ function fillSheet(){
   document.getElementById("d-eb").href="https://www.ebay.fr/sch/i.html?LH_Sold=1&LH_Complete=1&_nkw="+encodeURIComponent(s.en?`${c.en} ${c.set} ${c.num}`:`${c.en} ${s.name} japanese`);
 }
 document.getElementById("d-toggle").onclick=()=>toggle(cur);
-document.getElementById("d-plus").onclick=()=>{const r=rec(cur.key);const was=r.qty;r.qty++;save();fillSheet();paintTile(cur);if(!was){paintStats();applyFilters()}};
+document.getElementById("d-plus").onclick=()=>{const r=rec(cur.key);const was=r.qty;r.qty++;if(!was)applyDefaultLang(cur);save();fillSheet();paintTile(cur);if(!was){paintStats();applyFilters()}};
 document.getElementById("d-minus").onclick=()=>{const r=rec(cur.key);if(r.qty>0){r.qty--;save();fillSheet();paintTile(cur);if(!r.qty){paintStats();applyFilters()}}};
 document.getElementById("d-cond").onchange=e=>{rec(cur.key).cond=e.target.value;save();paintTile(cur)};
 document.querySelectorAll("#d-lang button").forEach(b=>b.onclick=()=>{
   const r=rec(cur.key);r.lang=r.lang===b.dataset.lang?"":b.dataset.lang;   // re-cliquer désélectionne
+  if(r.lang){lastLang=r.lang;pref("lang",lastLang)}                          // mémorisée pour les prochaines cartes
   if(r.lang&&!r.qty){r.qty=1;paintStats();applyFilters()}                   // choisir une langue = « je l'ai »
   save();fillSheet();paintTile(cur)});
 document.getElementById("d-upg").onchange=e=>{rec(cur.key).upg=e.target.checked;save();paintTile(cur);applyFilters()};

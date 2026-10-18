@@ -229,6 +229,13 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:19}
       <span style="font-size:13px;color:var(--muted)">Quantité</span>
       <span class="stepper"><button id="d-minus" aria-label="Retirer un exemplaire">−</button><output id="d-qty">0</output><button id="d-plus" aria-label="Ajouter un exemplaire">+</button></span>
     </div>
+    <div class="row" id="d-lang-row" role="group" aria-label="Langue de mon exemplaire">
+      <span style="font-size:13px;color:var(--muted)">Mon exemplaire</span>
+      <span class="seg" id="d-lang">
+        <button type="button" data-lang="FR" aria-pressed="false">Français</button>
+        <button type="button" data-lang="EN" aria-pressed="false">Anglais</button>
+      </span>
+    </div>
     <label for="d-cond">État
       <select id="d-cond">
         <option value="">Non renseigné</option>
@@ -428,6 +435,7 @@ function paintTile(c){
   const tk=t.querySelector(".tick");tk.textContent=o?"✓":"+";tk.setAttribute("aria-label",o?`Retirer ${c.fr} de ma collection`:`J'ai ${c.fr}`);
   const qb=t.querySelector(".qty");qb.hidden=q<2;qb.textContent="×"+q;
   const r=state.cards[c.key]||{},tg=t.querySelector(".tags");tg.innerHTML="";
+  if(r.lang&&o){const s=document.createElement("span");s.className="cond";s.textContent=r.lang==="FR"?"🇫🇷 FR":"🇬🇧 EN";tg.appendChild(s)}
   if(r.cond){const s=document.createElement("span");s.className="cond";s.textContent=r.cond;tg.appendChild(s)}
   if(r.upg){const s=document.createElement("span");s.className="upg-tag";s.textContent="↑ À upgrader";tg.appendChild(s)}
 }
@@ -551,6 +559,9 @@ function fillSheet(){
   document.getElementById("d-notes").value=r.notes||"";
   document.getElementById("d-link").href=c.url||"#";document.getElementById("d-link").hidden=!c.url;
   document.getElementById("d-upg").checked=!!r.upg;
+  // Langue de l'exemplaire : seulement pour les cartes internationales (existantes en français et en anglais)
+  document.getElementById("d-lang-row").hidden=!s.en;
+  document.querySelectorAll("#d-lang button").forEach(b=>b.setAttribute("aria-pressed",r.lang===b.dataset.lang));
   document.getElementById("d-val").value=r.val||"";
   document.getElementById("d-paid").value=r.paid||"";
   // Cardmarket : la page de l'extension exacte, filtrée sur le nom de la carte (recherche générale pour les promos)
@@ -563,6 +574,10 @@ document.getElementById("d-toggle").onclick=()=>toggle(cur);
 document.getElementById("d-plus").onclick=()=>{const r=rec(cur.key);const was=r.qty;r.qty++;save();fillSheet();paintTile(cur);if(!was){paintStats();applyFilters()}};
 document.getElementById("d-minus").onclick=()=>{const r=rec(cur.key);if(r.qty>0){r.qty--;save();fillSheet();paintTile(cur);if(!r.qty){paintStats();applyFilters()}}};
 document.getElementById("d-cond").onchange=e=>{rec(cur.key).cond=e.target.value;save();paintTile(cur)};
+document.querySelectorAll("#d-lang button").forEach(b=>b.onclick=()=>{
+  const r=rec(cur.key);r.lang=r.lang===b.dataset.lang?"":b.dataset.lang;   // re-cliquer désélectionne
+  if(r.lang&&!r.qty){r.qty=1;paintStats();applyFilters()}                   // choisir une langue = « je l'ai »
+  save();fillSheet();paintTile(cur)});
 document.getElementById("d-upg").onchange=e=>{rec(cur.key).upg=e.target.checked;save();paintTile(cur);applyFilters()};
 document.getElementById("d-norar").onchange=e=>{rec(cur.key).norar=e.target.checked;save()};
 document.getElementById("d-val").oninput=e=>{rec(cur.key).val=e.target.value;save();paintStats()};

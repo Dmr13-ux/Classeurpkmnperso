@@ -370,14 +370,15 @@ function cmSlugEN(set){if(CM_SKIP.test(set))return null;return CM_EN[set]||set.r
 const THEME_TABS=THEMES.map(t=>{
   const tab={id:t.id,name:t.name,kana:t.kana,note:t.note,theme:true};
   const jp=t.jp.map(([sid,n])=>({...BYKEY.get(sid+"-"+n)}));
-  const en=t.en.map(c=>({...c,n:0,src:{name:c.set,cm:cmSlugEN(c.set),en:true},setLabel:c.set+" #"+c.num,url:null}));
+  // Cartes hors classeur vintage : internationales (EN) ou japonaises récentes (JP)
+  const en=t.en.map(c=>({...c,n:0,src:{name:c.set,cm:cmSlugEN(c.set),en:true},setLabel:c.set+" #"+c.num,url:c.url||null}));
   tab.cards=[...jp,...en].sort((a,b)=>a.date.localeCompare(b.date)||(a.origN||0)-(b.origN||0));
   tab.cards.forEach((c,i)=>{c.n=i+1});
   return tab;
 });
 const TABS=[...SETS,...THEME_TABS];
 // Toutes les cartes uniques (pour la recherche globale et la valeur totale de la collection)
-const UNIQUE=[...new Map([...ALL,...THEME_TABS.flatMap(t=>t.cards.filter(c=>c.lang==="EN"))].map(c=>[c.key,c])).values()];
+const UNIQUE=[...new Map([...ALL,...THEME_TABS.flatMap(t=>t.cards.filter(c=>c.src.en))].map(c=>[c.key,c])).values()];
 
 /* Trophées : communs à tous les sets, plus quelques-uns propres à l'Expansion Pack */
 function trophiesFor(set){
@@ -586,7 +587,7 @@ function fillSheet(){
   document.getElementById("d-img").src=c.img;document.getElementById("d-img").alt=c.fr;
   document.querySelector(".big").classList.toggle("holo",c.holo);
   document.getElementById("d-foil-lbl").hidden=!c.holo;
-  document.getElementById("d-num").textContent=s.en?`${c.set} · #${c.num} · ${c.date.slice(0,4)} · carte internationale${c.rarity?" · "+c.rarity:""}`
+  document.getElementById("d-num").textContent=s.en?`${c.set} · #${c.num} · ${c.date.slice(0,4)} · carte ${c.lang==="JP"?"japonaise":"internationale"}${c.rarity?" · "+c.rarity:""}`
     :`${s.name} · #${pad(c.origN)} / ${s.cards.length} · ${c.date.slice(0,4)} · carte japonaise`;
   document.getElementById("d-name").textContent=c.fr;
   document.getElementById("d-sub").innerHTML=`<span class="dot" style="--dot:var(${TYPES[c.type][1]})"></span>${typeLabel(c)}${c.dex?" · N° "+pad(c.dex):""}${c.en!==c.fr?" · "+esc(c.en):""}${c.holo?' · <span class="holo-tag">Holo</span>':""}`;
@@ -599,7 +600,7 @@ function fillSheet(){
   document.getElementById("d-link").href=c.url||"#";document.getElementById("d-link").hidden=!c.url;
   document.getElementById("d-upg").checked=!!r.upg;
   // Langue de l'exemplaire : seulement pour les cartes internationales (existantes en français et en anglais)
-  document.getElementById("d-lang-row").hidden=!s.en;
+  document.getElementById("d-lang-row").hidden=!(s.en&&c.lang==="EN");
   document.querySelectorAll("#d-lang button").forEach(b=>b.setAttribute("aria-pressed",r.lang===b.dataset.lang));
   document.getElementById("d-val").value=r.val||"";
   document.getElementById("d-paid").value=r.paid||"";

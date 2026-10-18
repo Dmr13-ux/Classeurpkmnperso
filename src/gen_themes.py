@@ -253,13 +253,33 @@ def parse(key):
                          img=img_url(cid, sid, n), lang="EN"))
     return rows
 
+# Cartes japonaises récentes pas encore sorties à l'international (images Pokellector)
+JP_EXTRA = {
+  "can": [
+    dict(key="JP-M6-10", en="Growlithe", set="Storm Emeralda", date="2026-07-31", num="010", rarity="Common",
+         img="https://den-cards.pokellector.com/437/Growlithe.M6.10.61938.png", url="https://jp.pokellector.com/Storm-Emeralda-Expansion/Growlithe-Card-10"),
+    dict(key="JP-M6-11", en="Arcanine", set="Storm Emeralda", date="2026-07-31", num="011", rarity="Rare",
+         img="https://den-cards.pokellector.com/437/Arcanine.M6.11.61939.png", url="https://jp.pokellector.com/Storm-Emeralda-Expansion/Arcanine-Card-11"),
+    dict(key="JP-M6-78", en="Growlithe", set="Storm Emeralda", date="2026-07-31", num="078", rarity="Art Rare",
+         img="https://den-cards.pokellector.com/437/Growlithe.M6.78.62006.png", url="https://jp.pokellector.com/Storm-Emeralda-Expansion/Growlithe-Card-78"),
+  ],
+  "mia": [],
+}
+def jp_extra(rows):
+    out = []
+    for r in rows:
+        fr, base = fr_name(r["en"])
+        out.append(dict(r, fr=fr, dex=SPECIES[base][1], type=SPECIES[base][2], lang="JP",
+                        holo=any(w in r["rarity"] for w in HOLO_WORDS+("Art Rare",))))
+    return out
+
 THEMES = [
   dict(id="TH-CAN", name="Caninos & Arcanin", kana="ガーディ · ウインディ", species=["Growlithe","Arcanine"],
        note="Toutes les cartes Caninos et Arcanin, formes de Hisui, ex, V et BREAK comprises, de la plus ancienne à la plus récente.",
-       jp=[("EXP",18),("EXP",19),("B06",27),("B06",34)], en=parse("growlithe")+parse("arcanine")),
+       jp=[("EXP",18),("EXP",19),("B06",27),("B06",34)], en=parse("growlithe")+parse("arcanine")+jp_extra(JP_EXTRA["can"])),
   dict(id="TH-MIA", name="Miaouss & Persian", kana="ニャース · ペルシアン", species=["Meowth","Persian","Perrserker"],
        note="Toutes les cartes Miaouss, Persian et Berserkatt, formes d'Alola et de Galar, ex, GX, V et VMAX comprises, de la plus ancienne à la plus récente.",
-       jp=[("B02",36),("B02",39),("B04",47),("B04",48),("B06",63),("B06",68),("B06",71)], en=parse("meowth")+parse("persian")+parse("perrserker")),
+       jp=[("B02",36),("B02",39),("B04",47),("B04",48),("B06",63),("B06",68),("B06",71)], en=parse("meowth")+parse("persian")+parse("perrserker")+jp_extra(JP_EXTRA["mia"])),
 ]
 for t in THEMES:
     t["en"].sort(key=lambda c: (c["date"], c["set"], c["num"].zfill(4)))

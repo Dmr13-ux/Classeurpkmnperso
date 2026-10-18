@@ -232,6 +232,13 @@ def fr_name(en):
     if owner: name += " " + owner
     return name, base
 
+def img_url(cid, sid, n):
+    # Les extensions Méga-Évolution (identifiants « me… », 2025-2026) ont leurs images chez Scrydex :
+    # l'ancienne adresse pokemontcg.io renvoie un dos de carte pour elles.
+    if sid.startswith("me"):
+        return f"https://images.scrydex.com/pokemon/{cid}/small"
+    return f"https://images.pokemontcg.io/{sid}/{n}.png"
+
 def parse(key):
     rows = []
     for line in RAW[key].strip().splitlines():
@@ -243,7 +250,7 @@ def parse(key):
         holo = any(w in rar for w in HOLO_WORDS) or bool(re.search(r"\b(ex|EX|GX|V|VMAX|BREAK)\b", en))
         rows.append(dict(key="EN-"+cid, en=en, fr=fr, dex=SPECIES[base][1], type=SPECIES[base][2], holo=holo,
                          set=setname, date=date.replace("/","-"), num=num, rarity=rar if rar not in "-—(none)" else "",
-                         img=f"https://images.pokemontcg.io/{sid}/{n}.png", lang="EN"))
+                         img=img_url(cid, sid, n), lang="EN"))
     return rows
 
 THEMES = [

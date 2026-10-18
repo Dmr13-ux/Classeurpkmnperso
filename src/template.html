@@ -77,7 +77,8 @@ h2{font-family:var(--display);font-weight:400;font-size:20px;margin:28px 0 12px}
 .trophy small{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 
 /* Barre d'outils */
-.tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:28px 0 16px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px}
+.tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:28px 0 16px;position:sticky;top:0;z-index:5;background:var(--bg);
+  padding-top:calc(10px + env(safe-area-inset-top,0px));padding-bottom:10px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:99px;overflow:hidden;background:var(--surface);flex-wrap:wrap}
 .seg button{border:0;background:none;padding:7px 14px;cursor:pointer;font-size:14px}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
@@ -427,7 +428,9 @@ function tile(c){
   <button class="tick"></button>
   <div class="cap"><strong>${esc(c.fr)}</strong><span class="num"></span></div>
   <div class="sub" style="--dot:var(${TYPES[c.type][1]})"><span class="dot"></span><span class="alt"></span>${c.holo?' <span class="holo-tag">Holo</span>':""}<span class="tags"></span></div>`;
-  const img=d.querySelector("img");img.onerror=()=>{img.hidden=true};
+  const img=d.querySelector("img");
+  // Si la grande image Scrydex ne charge pas, on retente la petite, puis on affiche le nom
+  img.onerror=()=>{if(img.src.endsWith("/large")){img.src=img.src.replace(/\/large$/,"/small");return}img.hidden=true};
   img.onload=()=>{d.querySelector(".ph").hidden=true};
   d.querySelector(".pic").onclick=()=>openSheet(c);
   if(c.holo)holoTilt(d.querySelector(".pic"));

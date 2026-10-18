@@ -131,10 +131,19 @@ body.foil-off .card.holo .pic.tilt{transform:none}
 .empty{padding:40px;text-align:center;color:var(--muted);grid-column:1/-1}
 
 /* Fiche carte */
-dialog{border:0;border-radius:14px;padding:0;background:var(--surface);color:var(--ink);width:min(720px,calc(100vw - 32px));max-height:calc(100vh - 32px)}
-dialog::backdrop{background:rgba(10,12,18,.6)}
+dialog{border:0;border-radius:14px;padding:0;background:var(--surface);color:var(--ink);width:min(720px,calc(100vw - 24px));
+  max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+dialog::backdrop{background:rgba(10,12,18,.7)}
+body.sheet-open{overflow:hidden}
+/* Barre fixe en haut de la fiche : navigation et fermeture toujours accessibles */
+.sheet-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--line)}
+.sheet-pos{flex:1;text-align:center;font:12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.nav-btn{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font-size:24px;line-height:1;cursor:pointer;display:grid;place-items:center;flex:none}
+.nav-btn:disabled{opacity:.35;cursor:default}
+.nav-btn.close{font-size:18px;background:var(--ink);color:var(--surface);border-color:var(--ink)}
 .sheet{display:grid;grid-template-columns:minmax(0,240px) minmax(0,1fr);gap:20px;padding:20px}
-@media (max-width:560px){.sheet{grid-template-columns:1fr}.sheet .big{max-width:220px;margin:0 auto}}
+.sheet .num{white-space:normal;overflow-wrap:anywhere}
+@media (max-width:560px){.sheet{grid-template-columns:1fr;padding:16px}.sheet .big{max-width:min(240px,62vw);margin:0 auto}}
 .big{border-radius:10px;overflow:hidden;aspect-ratio:63/88;background:var(--surface-2)}
 .big img{width:100%;height:100%;object-fit:cover;display:block}
 .form{display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -215,7 +224,14 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:19}
   </footer>
 </div>
 
-<dialog id="dlg"><div class="sheet">
+<dialog id="dlg">
+<div class="sheet-bar">
+  <button type="button" class="nav-btn" id="d-prev" aria-label="Carte précédente">‹</button>
+  <span class="sheet-pos" id="d-pos"></span>
+  <button type="button" class="nav-btn" id="d-next" aria-label="Carte suivante">›</button>
+  <button type="button" class="nav-btn close" id="d-x" aria-label="Fermer la fiche">✕</button>
+</div>
+<div class="sheet">
   <div class="big"><img id="d-img" alt="" referrerpolicy="no-referrer"></div>
   <div class="form">
     <div>
@@ -543,9 +559,29 @@ function toggle(c,fromTile){
 /* Fiche */
 const dlg=document.getElementById("dlg");
 holoTilt(document.querySelector(".big"));
-function openSheet(c){cur=c;fillSheet();if(dlg.showModal)dlg.showModal();else dlg.setAttribute("open","")}
+function openSheet(c){cur=c;fillSheet();document.body.classList.add("sheet-open");
+  if(!dlg.open){if(dlg.showModal)dlg.showModal();else dlg.setAttribute("open","")}dlg.scrollTop=0}
+function closeSheet(){if(dlg.close)dlg.close();else dlg.removeAttribute("open");document.body.classList.remove("sheet-open")}
+dlg.addEventListener("close",()=>document.body.classList.remove("sheet-open"));
+/* Carte précédente / suivante : dans l'ordre affiché, filtres compris */
+function visibleOrder(){return [...grid.querySelectorAll(".card:not([hidden])")].map(t=>t.dataset.key)}
+function step(d){const ord=visibleOrder(),i=ord.indexOf(cur.key),k=ord[i+d];if(!k)return;
+  openSheet(curList.find(c=>c.key===k))}
+function paintNav(){const ord=visibleOrder(),i=ord.indexOf(cur.key);
+  document.getElementById("d-prev").disabled=i<=0;document.getElementById("d-next").disabled=i<0||i>=ord.length-1;
+  document.getElementById("d-pos").textContent=i>=0?`${i+1} / ${ord.length}`:""}
+document.getElementById("d-prev").onclick=()=>step(-1);
+document.getElementById("d-next").onclick=()=>step(1);
+document.getElementById("d-x").onclick=closeSheet;
+// Glisser à gauche / à droite sur l'image pour changer de carte
+(function(){let x0=null,y0=0;const big=document.querySelector(".big");
+  big.addEventListener("touchstart",e=>{x0=e.touches[0].clientX;y0=e.touches[0].clientY},{passive:true});
+  big.addEventListener("touchend",e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;x0=null;
+    if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5)step(dx<0?1:-1)},{passive:true});})();
+document.addEventListener("keydown",e=>{if(!dlg.open)return;if(e.key==="ArrowRight")step(1);if(e.key==="ArrowLeft")step(-1)});
 function fillSheet(){
   const c=cur,r=rec(c.key),s=c.src;
+  paintNav();
   document.getElementById("d-img").src=c.img;document.getElementById("d-img").alt=c.fr;
   document.querySelector(".big").classList.toggle("holo",c.holo);
   document.getElementById("d-foil-lbl").hidden=!c.holo;
@@ -585,8 +621,10 @@ document.getElementById("d-norar").onchange=e=>{rec(cur.key).norar=e.target.chec
 document.getElementById("d-val").oninput=e=>{rec(cur.key).val=e.target.value;save();paintStats()};
 document.getElementById("d-paid").oninput=e=>{rec(cur.key).paid=e.target.value;save();paintStats()};
 document.getElementById("d-notes").oninput=e=>{rec(cur.key).notes=e.target.value;save()};
-document.getElementById("d-close").onclick=()=>dlg.close?dlg.close():dlg.removeAttribute("open");
-dlg.addEventListener("click",e=>{if(e.target===dlg)dlg.close()});
+document.getElementById("d-close").onclick=closeSheet;
+// Toucher le fond sombre autour de la fiche la ferme
+dlg.addEventListener("click",e=>{if(e.target!==dlg)return;const r=dlg.getBoundingClientRect();
+  if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeSheet()});
 
 /* Filtres et tri */
 document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{view.show=b.dataset.show;document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",x===b));applyFilters()});

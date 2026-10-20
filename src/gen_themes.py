@@ -287,3 +287,44 @@ print("const THEMES=" + json.dumps(THEMES, ensure_ascii=False, separators=(",", 
 for t in THEMES:
     print(t["id"], len(t["en"]), "internationales +", len(t["jp"]), "jap", file=sys.stderr)
     print("  ex.", [c["fr"] for c in t["en"] if c["holo"]][:8], file=sys.stderr)
+
+# ---------------------------------------------------------------------------
+# Onglet « Baby Shiny » : shiny simples (sans GX/V/VMAX/ex) de Destins Occultes, Destinées Radieuses et Destinées de Paldea
+from fr_names import FR
+TYPE_CODE = {"Grass":"G","Fire":"F","Water":"W","Lightning":"L","Psychic":"P","Fighting":"Fi","Darkness":"D",
+             "Metal":"M","Fairy":"Y","Dragon":"N","Colorless":"C"}
+def ranges(spec):
+    out = {}
+    for part in spec.split(","):
+        rng, t = part.split("=")
+        a, b = (rng.split("-") + [rng])[:2]
+        for n in range(int(a), int(b) + 1): out[n] = t
+    return out
+TYPES_BY_SET = {
+  "sma": ranges("1-5=Grass,6-7=Fire,8-12=Water,13-14=Lightning,15-19=Psychic,20-24=Fighting,25-26=Darkness,27-33=Metal,34-36=Fairy,37-40=Dragon,41-45=Colorless"),
+  "swsh45sv": ranges("1-14=Grass,15-19=Fire,20-37=Water,38-46=Lightning,47-62=Psychic,63-75=Fighting,76-85=Darkness,86-92=Metal,93-104=Colorless"),
+  "sv4pt5": ranges("92-108=Grass,109-115=Fire,116-130=Water,131-146=Lightning,147-168=Psychic,169-179=Fighting,180-190=Darkness,191-193=Metal,194-195=Dragon,196-211=Colorless"),
+}
+REGION = {"Alolan":"d'Alola","Galarian":"de Galar","Paldean":"de Paldea"}
+TAUROS_RACE = {111:" (race Flamboyante)",120:" (race Aquatique)",172:" (race Combative)"}
+shiny = []
+for line in open("shiny_raw.txt", encoding="utf-8"):
+    sid, date, setfr, items = line.strip().split("|")
+    for it in items.split(","):
+        num, en = it.split(":", 1)
+        n = int(re.sub(r"\D", "", num))
+        region = None
+        m = re.match(r"(Alolan|Galarian|Paldean) (.+)", en)
+        base = m.group(2) if m else en
+        if m: region = REGION[m.group(1)]
+        fr, dex = FR[base]
+        if region: fr += " " + region
+        if sid == "sv4pt5" and n in TAUROS_RACE: fr += TAUROS_RACE[n]
+        total = {"sma": "", "swsh45sv": "", "sv4pt5": "/091"}[sid]
+        shiny.append(dict(key=f"EN-{sid}-{num}", en=en, fr=fr, dex=dex, type=TYPE_CODE[TYPES_BY_SET[sid][n]], holo=True,
+                          set=setfr, date=date, num=num + total, rarity="Shiny", img=f"https://images.pokemontcg.io/{sid}/{num}.png", lang="EN"))
+THEMES.append(dict(id="TH-SHINY", name="Baby Shiny", kana="色違い · ひかるポケモン", species=[],
+    note="Les shiny simples des trois extensions « Destin(ée)s » : Destins Occultes (Shiny Vault SV1 à SV45), Destinées Radieuses (SV001 à SV104) et Destinées de Paldea (092 à 211). Sans les GX, V, VMAX ni ex.",
+    jp=[], en=shiny))
+print("const THEMES=" + json.dumps(THEMES, ensure_ascii=False, separators=(",", ":")) + ";", file=open(sys.argv[1], "w"))
+print("TH-SHINY", len(shiny), "cartes ;", sum(1 for c in shiny if c["set"]=="Destinées de Paldea"), "Paldea", file=sys.stderr)

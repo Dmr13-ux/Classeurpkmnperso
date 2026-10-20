@@ -15,7 +15,7 @@
 :root{
   --bg:#eef0f4; --surface:#ffffff; --surface-2:#e3e7ee; --ink:#1b2130; --muted:#5d6678;
   --line:#cfd5df; --accent:#d4342c; --accent-ink:#ffffff; --gold:#b8860b; --ok:#1f8a4c;
-  --g:#3f9a3c; --f:#e0602a; --w:#2f7fd0; --l:#d9a800; --p:#8a4fbf; --fi:#a8652f; --c:#8a8f99; --t:#5d6678;
+  --g:#3f9a3c; --f:#e0602a; --w:#2f7fd0; --l:#d9a800; --p:#8a4fbf; --fi:#a8652f; --c:#8a8f99; --t:#5d6678; --d:#3d4a5c; --m:#7f8fa3; --n:#b08a1e; --y:#e070b0;
   --display:"Dela Gothic One","Arial Black",system-ui,sans-serif;
   --body:"Zen Kaku Gothic New",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
@@ -288,7 +288,7 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:19}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const TYPES={G:["Plante","--g"],F:["Feu","--f"],W:["Eau","--w"],L:["Électrique","--l"],P:["Psy","--p"],Fi:["Combat","--fi"],C:["Incolore","--c"],M:["Métal","--c"],T:["Dresseur","--t"],E:["Énergie","--t"]};
+const TYPES={G:["Plante","--g"],F:["Feu","--f"],W:["Eau","--w"],L:["Électrique","--l"],P:["Psy","--p"],Fi:["Combat","--fi"],C:["Incolore","--c"],M:["Métal","--m"],D:["Obscurité","--d"],N:["Dragon","--n"],Y:["Fée","--y"],T:["Dresseur","--t"],E:["Énergie","--t"]};
 const pad=n=>String(n).padStart(3,"0");
 // Expansion Pack : [slug Pokellector, nom anglais, nom français, n° Pokédex, type, holo]
 const RAW_EXP=[
@@ -365,9 +365,10 @@ const BYKEY=new Map(ALL.map(c=>[c.key,c]));
 /* Onglets thématiques : cartes japonaises du classeur (mêmes clés, donc cochées des deux côtés) + cartes internationales */
 // Slugs Cardmarket des extensions internationales : nom de l'extension, mots séparés par des tirets (quelques exceptions)
 const CM_EN={"Base":"Base-Set","FireRed & LeafGreen":"FireRed-LeafGreen","HeartGold & SoulSilver":"HeartGold-SoulSilver",
-  "Sun & Moon":"Sun-Moon","Sword & Shield":"Sword-Shield","Scarlet & Violet":"Scarlet-Violet","Team Magma vs Team Aqua":"Team-Magma-vs-Team-Aqua"};
-const CM_SKIP=/Promos|McDonald|Trainer Kit|POP Series|Shiny Vault|Trainer Gallery/;
-function cmSlugEN(set){if(CM_SKIP.test(set))return null;return CM_EN[set]||set.replace(/&/g,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"")}
+  "Sun & Moon":"Sun-Moon","Sword & Shield":"Sword-Shield","Scarlet & Violet":"Scarlet-Violet","Team Magma vs Team Aqua":"Team-Magma-vs-Team-Aqua",
+  "Destins Occultes":"Hidden-Fates","Destinées Radieuses":"Shining-Fates","Destinées de Paldea":"Paldean-Fates","Shining Fates Shiny Vault":"Shining-Fates"};
+const CM_SKIP=/Promos|McDonald|Trainer Kit|POP Series|Trainer Gallery/;
+function cmSlugEN(set){if(CM_EN[set])return CM_EN[set];if(CM_SKIP.test(set))return null;return CM_EN[set]||set.replace(/&/g,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"")}
 const THEME_TABS=THEMES.map(t=>{
   const tab={id:t.id,name:t.name,kana:t.kana,note:t.note,theme:true};
   const jp=t.jp.map(([sid,n])=>({...BYKEY.get(sid+"-"+n)}));
@@ -554,7 +555,7 @@ function selectSet(i){
   const s=SET();
   document.getElementById("h-kana").textContent=s.kana;
   document.getElementById("h-name").textContent=s.name;
-  document.getElementById("h-meta").textContent=s.theme?`${s.cards.length} cartes, japonaises et internationales · ${s.note}`:`Sorti le ${s.date} · ${s.cards.length} cartes · ${s.note}`;
+  document.getElementById("h-meta").textContent=s.theme?`${s.cards.length} cartes${s.cards.some(c=>c.lang==="JP")?", japonaises et internationales":""} · ${s.note}`:`Sorti le ${s.date} · ${s.cards.length} cartes · ${s.note}`;
   // Changer d'onglet referme la recherche globale
   if(searching()){view.q="";document.getElementById("q").value=""}
   refreshView();paintStats();
@@ -640,7 +641,7 @@ dlg.addEventListener("click",e=>{if(e.target!==dlg)return;const r=dlg.getBoundin
 /* Filtres et tri */
 document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{view.show=b.dataset.show;document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",x===b));applyFilters()});
 const typesBox=document.getElementById("types");
-["G","F","W","L","P","Fi","C","T","E"].forEach(t=>{const b=document.createElement("button");b.className="chip";b.setAttribute("aria-pressed","false");b.style.setProperty("--dot",`var(${TYPES[t][1]})`);b.innerHTML=`<i></i>${TYPES[t][0]}`;
+["G","F","W","L","P","Fi","D","M","N","Y","C","T","E"].forEach(t=>{const b=document.createElement("button");b.className="chip";b.setAttribute("aria-pressed","false");b.style.setProperty("--dot",`var(${TYPES[t][1]})`);b.innerHTML=`<i></i>${TYPES[t][0]}`;
   b.onclick=()=>{view.type=view.type===t?"":t;typesBox.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===b&&view.type===t));applyFilters()};typesBox.appendChild(b)});
 document.getElementById("q").oninput=e=>{view.q=e.target.value;refreshView();paintSets()};
 const sortSel=document.getElementById("sort");sortSel.value=sortMode;

@@ -323,6 +323,14 @@ for line in open("shiny_raw.txt", encoding="utf-8"):
         total = {"sma": "", "swsh45sv": "", "sv4pt5": "/091"}[sid]
         shiny.append(dict(key=f"EN-{sid}-{num}", en=en, fr=fr, dex=dex, type=TYPE_CODE[TYPES_BY_SET[sid][n]], holo=True,
                           set=setfr, date=date, num=num + total, rarity="Shiny", img=f"https://images.pokemontcg.io/{sid}/{num}.png", lang="EN"))
+# Pokémon Radieux (shiny dans un cadre simple) ajoutés à la demande
+RADIANT = [
+  dict(key="EN-pgo-11", en="Radiant Charizard", fr="Dracaufeu Radieux", dex=6, type="F", holo=True, set="Pokémon GO",
+       date="2022-07-01", num="011/078", rarity="Radiant Rare", img="https://images.pokemontcg.io/pgo/11.png", lang="EN"),
+  dict(key="EN-swsh12pt5-20", en="Radiant Charizard", fr="Dracaufeu Radieux", dex=6, type="F", holo=True, set="Zénith Suprême",
+       date="2023-01-20", num="020/159", rarity="Radiant Rare", img="https://images.pokemontcg.io/swsh12pt5/20.png", lang="EN"),
+]
+shiny += RADIANT
 THEMES.append(dict(id="TH-SHINY", name="Baby Shiny", kana="色違い · ひかるポケモン", species=[],
     note="Les shiny simples des trois extensions « Destin(ée)s » : Destins Occultes (Shiny Vault SV1 à SV45), Destinées Radieuses (SV001 à SV104) et Destinées de Paldea (092 à 211). Sans les GX, V, VMAX ni ex.",
     jp=[], en=shiny))

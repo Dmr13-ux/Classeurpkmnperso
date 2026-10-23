@@ -330,9 +330,28 @@ RADIANT = [
   dict(key="EN-swsh12pt5-20", en="Radiant Charizard", fr="Dracaufeu Radieux", dex=6, type="F", holo=True, set="Zénith Suprême",
        date="2023-01-20", num="020/159", rarity="Radiant Rare", img="https://images.pokemontcg.io/swsh12pt5/20.png", lang="EN"),
 ]
+RADIANT += [dict(key=f"EN-{sid}-{n}", en=en, fr=fr, dex=dex, type=t, holo=True, set=setfr, date=date, num=num,
+                 rarity="Radiant Rare", img=f"https://images.pokemontcg.io/{sid}/{n}.png", lang="EN")
+  for sid,n,en,fr,dex,t,setfr,date,num in [
+  ("swsh10","27","Radiant Heatran","Heatran Radieux",485,"F","Astres Radieux","2022-05-27","027/189"),
+  ("swsh10","46","Radiant Greninja","Amphinobi Radieux",658,"W","Astres Radieux","2022-05-27","046/189"),
+  ("swsh10","81","Radiant Hawlucha","Brutalibré Radieux",701,"Fi","Astres Radieux","2022-05-27","081/189"),
+  ("pgo","4","Radiant Venusaur","Florizarre Radieux",3,"G","Pokémon GO","2022-07-01","004/078"),
+  ("pgo","18","Radiant Blastoise","Tortank Radieux",9,"W","Pokémon GO","2022-07-01","018/078"),
+  ("swsh11","69","Radiant Gardevoir","Gardevoir Radieux",282,"P","Origine Perdue","2022-09-09","069/196"),
+  ("swsh11","123","Radiant Hisuian Sneasler","Farfurex de Hisui Radieux",903,"D","Origine Perdue","2022-09-09","123/196"),
+  ("swsh11","124","Radiant Steelix","Steelix Radieux",208,"M","Origine Perdue","2022-09-09","124/196"),
+  ("swshp","SWSH230","Radiant Eevee","Évoli Radieux",133,"C","Promos Black Star EB","2022-09-30","SWSH230"),
+  ("swsh12","16","Radiant Tsareena","Sucreine Radieuse",763,"G","Tempête Argentée","2022-11-11","016/195"),
+  ("swsh12","59","Radiant Alakazam","Alakazam Radieux",65,"P","Tempête Argentée","2022-11-11","059/195"),
+  ("swsh12","120","Radiant Jirachi","Jirachi Radieux",385,"M","Tempête Argentée","2022-11-11","120/195"),
+  ("swsh12pt5","51","Radiant Charjabug","Chrysapile Radieux",737,"L","Zénith Suprême","2023-01-20","051/159"),
+  ("swsh12pt5","105","Radiant Eternatus","Éthernatos Radieux",890,"D","Zénith Suprême","2023-01-20","105/159"),
+  ]]
 shiny += RADIANT
+shiny.sort(key=lambda c: (c["date"], c["set"], c["num"].replace("SV","").zfill(8)))
 THEMES.append(dict(id="TH-SHINY", name="Baby Shiny", kana="色違い · ひかるポケモン", species=[],
-    note="Les shiny simples des trois extensions « Destin(ée)s » : Destins Occultes (Shiny Vault SV1 à SV45), Destinées Radieuses (SV001 à SV104) et Destinées de Paldea (092 à 211). Sans les GX, V, VMAX ni ex.",
+    note="Les shiny simples des trois extensions « Destin(ée)s » : Destins Occultes (SV1 à SV45), Destinées Radieuses (SV001 à SV104) et Destinées de Paldea (092 à 211), plus les 16 Pokémon Radieux. Sans les GX, V, VMAX ni ex.",
     jp=[], en=shiny))
 print("const THEMES=" + json.dumps(THEMES, ensure_ascii=False, separators=(",", ":")) + ";", file=open(sys.argv[1], "w"))
 print("TH-SHINY", len(shiny), "cartes ;", sum(1 for c in shiny if c["set"]=="Destinées de Paldea"), "Paldea", file=sys.stderr)

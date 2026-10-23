@@ -366,7 +366,7 @@ const BYKEY=new Map(ALL.map(c=>[c.key,c]));
 // Slugs Cardmarket des extensions internationales : nom de l'extension, mots séparés par des tirets (quelques exceptions)
 const CM_EN={"Base":"Base-Set","FireRed & LeafGreen":"FireRed-LeafGreen","HeartGold & SoulSilver":"HeartGold-SoulSilver",
   "Sun & Moon":"Sun-Moon","Sword & Shield":"Sword-Shield","Scarlet & Violet":"Scarlet-Violet","Team Magma vs Team Aqua":"Team-Magma-vs-Team-Aqua",
-  "Destins Occultes":"Hidden-Fates","Destinées Radieuses":"Shining-Fates","Destinées de Paldea":"Paldean-Fates","Zénith Suprême":"Crown-Zenith","Pokémon GO":"Pokemon-GO","Shining Fates Shiny Vault":"Shining-Fates"};
+  "Destins Occultes":"Hidden-Fates","Destinées Radieuses":"Shining-Fates","Destinées de Paldea":"Paldean-Fates","Zénith Suprême":"Crown-Zenith","Astres Radieux":"Astral-Radiance","Origine Perdue":"Lost-Origin","Tempête Argentée":"Silver-Tempest","Pokémon GO":"Pokemon-GO","Shining Fates Shiny Vault":"Shining-Fates"};
 const CM_SKIP=/Promos|McDonald|Trainer Kit|POP Series|Trainer Gallery/;
 function cmSlugEN(set){if(CM_EN[set])return CM_EN[set];if(CM_SKIP.test(set))return null;return CM_EN[set]||set.replace(/&/g,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"")}
 const THEME_TABS=THEMES.map(t=>{

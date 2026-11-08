@@ -672,7 +672,17 @@ document.getElementById("exportBtn").onclick=()=>{
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="sauvegarde-pokemon-jap-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();a.remove();
   toast("Sauvegarde téléchargée 💾")};
 document.getElementById("importFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
-  rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d.cards)throw 0;state={cards:d.cards};save();refreshAll();toast("Sauvegarde importée ✅")}catch(err){toast("Ce fichier n'est pas une sauvegarde du classeur.")}};
+  rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d.cards)throw 0;
+    if(d.mode==="ajout"){
+      // Fichier d'ajout : complète la collection sans rien effacer (cartes déjà cochées, états, notes conservés)
+      let n=0;Object.entries(d.cards).forEach(([k,v])=>{const r=rec(k);
+        if(!r.qty){r.qty=v.qty||1;n++}
+        if(v.lang&&!r.lang)r.lang=v.lang;
+        if(v.cond&&!r.cond)r.cond=v.cond;
+        if(v.notes&&!r.notes)r.notes=v.notes});
+      save();refreshAll();toast(`${n} carte${n>1?"s":""} ajoutée${n>1?"s":""} à ta collection ✅`);confetti();
+    }else{state={cards:d.cards};save();refreshAll();toast("Sauvegarde importée ✅")}
+  }catch(err){toast("Ce fichier n'est pas une sauvegarde du classeur.")}};
   rd.readAsText(f);e.target.value=""};
 const rz=document.getElementById("resetZone");
 function resetIdle(){rz.innerHTML='<button class="btn" id="resetBtn">Tout réinitialiser</button>';document.getElementById("resetBtn").onclick=()=>{

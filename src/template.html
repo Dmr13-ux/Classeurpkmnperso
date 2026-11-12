@@ -176,7 +176,7 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:19}
 <body>
 <canvas id="confetti"></canvas>
 <div class="wrap">
-  <div class="era"><strong>Ère Original · Japon</strong><span id="eraCount"></span></div>
+  <div class="era"><strong>Ma collection shiny</strong><span id="eraCount"></span></div>
   <nav class="sets" id="sets" aria-label="Choisir un set"></nav>
 
   <header>
@@ -210,7 +210,7 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:19}
     <div class="chips" id="types"></div>
     <button class="chip" id="foilBtn" aria-pressed="true">✨ Effet holo : oui</button>
     <button class="reset-f" id="resetFilters" hidden>✕ Réinitialiser les filtres</button>
-    <input class="search" id="q" type="search" placeholder="Chercher dans tout le classeur (Dracaufeu, Arcanin, 006…)" aria-label="Chercher une carte">
+    <input class="search" id="q" type="search" placeholder="Chercher dans tout le classeur (Dracaufeu, Pohm, 006…)" aria-label="Chercher une carte">
   </div>
 
   <p class="search-info" id="searchInfo" hidden></p>
@@ -366,11 +366,11 @@ const BYKEY=new Map(ALL.map(c=>[c.key,c]));
 // Slugs Cardmarket des extensions internationales : nom de l'extension, mots séparés par des tirets (quelques exceptions)
 const CM_EN={"Base":"Base-Set","FireRed & LeafGreen":"FireRed-LeafGreen","HeartGold & SoulSilver":"HeartGold-SoulSilver",
   "Sun & Moon":"Sun-Moon","Sword & Shield":"Sword-Shield","Scarlet & Violet":"Scarlet-Violet","Team Magma vs Team Aqua":"Team-Magma-vs-Team-Aqua",
-  "Destins Occultes":"Hidden-Fates","Destinées Radieuses":"Shining-Fates","Destinées de Paldea":"Paldean-Fates","Zénith Suprême":"Crown-Zenith","Astres Radieux":"Astral-Radiance","Origine Perdue":"Lost-Origin","Tempête Argentée":"Silver-Tempest","Pokémon GO":"Pokemon-GO","Shining Fates Shiny Vault":"Shining-Fates"};
+  "Destins Occultes":"Hidden-Fates","Destinées Radieuses":"Shining-Fates","Destinées de Paldea":"Paldean-Fates","Zénith Suprême":"Crown-Zenith","Astres Radieux":"Astral-Radiance","Origine Perdue":"Lost-Origin","Tempête Argentée":"Silver-Tempest","Pokémon GO":"Pokemon-GO","Neo Revelation":"Neo-Revelation","Neo Destiny":"Neo-Destiny","Légendes Brillantes":"Shining-Legends","Célébrations (Collection Classique)":"Celebrations-Classic-Collection","Shining Fates Shiny Vault":"Shining-Fates"};
 const CM_SKIP=/Promos|McDonald|Trainer Kit|POP Series|Trainer Gallery/;
 function cmSlugEN(set){if(CM_EN[set])return CM_EN[set];if(CM_SKIP.test(set))return null;return CM_EN[set]||set.replace(/&/g,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"")}
 const THEME_TABS=THEMES.map(t=>{
-  const tab={id:t.id,name:t.name,kana:t.kana,note:t.note,theme:true};
+  const tab={id:t.id,name:t.name,kana:t.kana,note:t.note,theme:true,group:t.group};
   const jp=t.jp.map(([sid,n])=>({...BYKEY.get(sid+"-"+n)}));
   // Cartes hors classeur vintage : internationales (EN) ou japonaises récentes (JP)
   const en=t.en.map(c=>({...c,n:0,src:{name:c.set,cm:cmSlugEN(c.set),en:true},setLabel:c.set+" #"+c.num,url:c.url||null}));
@@ -378,9 +378,12 @@ const THEME_TABS=THEMES.map(t=>{
   tab.cards.forEach((c,i)=>{c.n=i+1});
   return tab;
 });
-const TABS=[...SETS,...THEME_TABS];
+// Les extensions vintage ne sont plus affichées en onglets : leurs données restent chargées pour les cartes
+// japonaises des collections Caninos/Miaouss, et les cases déjà cochées restent dans la sauvegarde.
+const TABS=[...THEME_TABS];
+const SHINY_KEYS=[...new Set(TABS.filter(t=>t.group==="shiny").flatMap(t=>t.cards.map(c=>c.key)))];
 // Toutes les cartes uniques (pour la recherche globale et la valeur totale de la collection)
-const UNIQUE=[...new Map([...ALL,...THEME_TABS.flatMap(t=>t.cards.filter(c=>c.src.en))].map(c=>[c.key,c])).values()];
+const UNIQUE=[...new Map(THEME_TABS.flatMap(t=>t.cards).map(c=>[c.key,c])).values()];
 
 /* Trophées : communs à tous les sets, plus quelques-uns propres à l'Expansion Pack */
 function trophiesFor(set){
@@ -392,7 +395,7 @@ function trophiesFor(set){
     list.push({ico:"🌱",name:"Starters de Kanto",keys:[1,14,23].map(n=>by(n).key)});
     list.push({ico:"🐉",name:"Trio final",keys:[11,21,32].map(n=>by(n).key)});
   }
-  list.push({ico:"✨",name:"Chasseur d'holos",keys:keys(C.filter(c=>c.holo))});
+  if(C.some(c=>!c.holo))list.push({ico:"✨",name:"Chasseur d'holos",keys:keys(C.filter(c=>c.holo))});   // inutile si tout est holo (shiny)
   const tr=C.filter(c=>c.type==="T");if(tr.length)list.push({ico:"🎒",name:"Dresseur aguerri",keys:keys(tr)});
   const en=C.filter(c=>c.type==="E");if(en.length>1)list.push({ico:"⚡",name:"Plein d'énergie",keys:keys(en)});
   list.push({ico:"🏅",name:"Mi-parcours",keys:keys(C),min:Math.ceil(C.length/2)});
@@ -519,16 +522,16 @@ function applyFilters(){
 const setsNav=document.getElementById("sets");
 const tabBtns=[];
 TABS.forEach((s,i)=>{
-  if(s.theme&&!TABS[i-1].theme){const sep=document.createElement("span");sep.className="sep";sep.textContent="Collections";setsNav.appendChild(sep)}
+  if(i===0||TABS[i-1].group!==s.group){const sep=document.createElement("span");sep.className="sep";sep.textContent=s.group==="shiny"?"Shiny":"Pokémon";setsNav.appendChild(sep)}
   const b=document.createElement("button");b.className="set"+(s.theme?" theme":"");
-  b.innerHTML=`<span class="code">${s.theme?"THÈME":s.id}</span><b>${esc(s.name)}</b><span class="mini"><i></i></span><small></small>`;
+  b.innerHTML=`<span class="code">${s.group==="shiny"?"SHINY":"COLLECTION"}</span><b>${esc(s.name)}</b><span class="mini"><i></i></span><small></small>`;
   b.onclick=()=>selectSet(i);setsNav.appendChild(b);tabBtns.push(b)});
 function paintSets(){
-  let haveAll=0;
-  TABS.forEach((s,i)=>{const have=s.cards.filter(c=>owned(c.key)).length;if(!s.theme)haveAll+=have;
+  const haveAll=SHINY_KEYS.filter(owned).length;
+  TABS.forEach((s,i)=>{const have=s.cards.filter(c=>owned(c.key)).length;
     const b=tabBtns[i];b.setAttribute("aria-pressed",i===setIdx&&!searching());b.classList.toggle("done",have===s.cards.length);
     b.querySelector("i").style.width=(have/s.cards.length*100)+"%";b.querySelector("small").textContent=`${have} / ${s.cards.length}`});
-  document.getElementById("eraCount").textContent=`${haveAll} / ${ERA_TOTAL} cartes · ${Math.round(haveAll/ERA_TOTAL*100)} %`;
+  document.getElementById("eraCount").textContent=`${haveAll} / ${SHINY_KEYS.length} shiny · ${Math.round(haveAll/SHINY_KEYS.length*100)} %`;
 }
 
 let wonBefore={};

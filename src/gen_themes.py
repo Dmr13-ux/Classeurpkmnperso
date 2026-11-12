@@ -348,10 +348,48 @@ RADIANT += [dict(key=f"EN-{sid}-{n}", en=en, fr=fr, dex=dex, type=t, holo=True, 
   ("swsh12pt5","51","Radiant Charjabug","Chrysapile Radieux",737,"L","Zénith Suprême","2023-01-20","051/159"),
   ("swsh12pt5","105","Radiant Eternatus","Éthernatos Radieux",890,"D","Zénith Suprême","2023-01-20","105/159"),
   ]]
-shiny += RADIANT
-shiny.sort(key=lambda c: (c["date"], c["set"], c["num"].replace("SV","").zfill(8)))
-THEMES.append(dict(id="TH-SHINY", name="Baby Shiny", kana="色違い · ひかるポケモン", species=[],
-    note="Les shiny simples des trois extensions « Destin(ée)s » : Destins Occultes (SV1 à SV45), Destinées Radieuses (SV001 à SV104) et Destinées de Paldea (092 à 211), plus les 16 Pokémon Radieux. Sans les GX, V, VMAX ni ex.",
-    jp=[], en=shiny))
+sk=lambda c: (c["date"], c["set"], c["num"].replace("SV","").replace("SM","").zfill(8))
+shiny.sort(key=sk); RADIANT.sort(key=sk)
+
+# Pokémon Brillant (Shining) : Neo, Légendes Brillantes, promos SM, Célébrations
+def brill(sid, n, en, fr, dex, t, setname, date, num):
+    return dict(key=f"EN-{sid}-{n}", en=en, fr=fr, dex=dex, type=t, holo=True, set=setname, date=date, num=num,
+                rarity="Shining", img=f"https://images.pokemontcg.io/{sid}/{n}.png", lang="EN")
+BRILLANT = [brill(*x) for x in [
+  ("neo3","65","Shining Gyarados","Léviator Brillant",130,"W","Neo Revelation","2001-09-21","65/64"),
+  ("neo3","66","Shining Magikarp","Magicarpe Brillant",129,"W","Neo Revelation","2001-09-21","66/64"),
+  ("neo4","106","Shining Celebi","Celebi Brillant",251,"G","Neo Destiny","2002-02-28","106/105"),
+  ("neo4","107","Shining Charizard","Dracaufeu Brillant",6,"F","Neo Destiny","2002-02-28","107/105"),
+  ("neo4","108","Shining Kabutops","Kabutops Brillant",141,"Fi","Neo Destiny","2002-02-28","108/105"),
+  ("neo4","109","Shining Mewtwo","Mewtwo Brillant",150,"P","Neo Destiny","2002-02-28","109/105"),
+  ("neo4","110","Shining Noctowl","Noarfang Brillant",164,"C","Neo Destiny","2002-02-28","110/105"),
+  ("neo4","111","Shining Raichu","Raichu Brillant",26,"L","Neo Destiny","2002-02-28","111/105"),
+  ("neo4","112","Shining Steelix","Steelix Brillant",208,"M","Neo Destiny","2002-02-28","112/105"),
+  ("neo4","113","Shining Tyranitar","Tyranocif Brillant",248,"D","Neo Destiny","2002-02-28","113/105"),
+  ("sm35","9","Shining Genesect","Genesect Brillant",649,"G","Légendes Brillantes","2017-10-06","9/73"),
+  ("sm35","27","Shining Volcanion","Volcanion Brillant",721,"W","Légendes Brillantes","2017-10-06","27/73"),
+  ("sm35","40","Shining Mew","Mew Brillant",151,"P","Légendes Brillantes","2017-10-06","40/73"),
+  ("sm35","42","Shining Jirachi","Jirachi Brillant",385,"P","Légendes Brillantes","2017-10-06","42/73"),
+  ("sm35","56","Shining Rayquaza","Rayquaza Brillant",384,"N","Légendes Brillantes","2017-10-06","56/73"),
+  ("sm35","57","Shining Arceus","Arceus Brillant",493,"C","Légendes Brillantes","2017-10-06","57/73"),
+  ("smp","SM70","Shining Ho-Oh","Ho-Oh Brillant",250,"F","Promos Black Star SM","2017-10-06","SM70"),
+  ("smp","SM79","Shining Celebi","Celebi Brillant",251,"G","Promos Black Star SM","2017-10-06","SM79"),
+  ("smp","SM82","Shining Lugia","Lugia Brillant",249,"C","Promos Black Star SM","2017-10-06","SM82"),
+  ("cel25c","66_A","Shining Magikarp","Magicarpe Brillant",129,"W","Célébrations (Collection Classique)","2021-10-08","66/64"),
+]]
+BRILLANT.sort(key=sk)
+
+THEMES[:0] = [
+  dict(id="TH-SHINY", name="Baby Shiny", kana="色違い", group="shiny", species=[],
+    note="Les shiny simples des trois extensions « Destin(ée)s » : Destins Occultes (SV1 à SV45), Destinées Radieuses (SV001 à SV104) et Destinées de Paldea (092 à 211). Sans les GX, V, VMAX ni ex.",
+    jp=[], en=shiny),
+  dict(id="TH-RAD", name="Pokémon Radieux", kana="かがやくポケモン", group="shiny", species=[],
+    note="Les 16 Pokémon Radieux, des Pokémon shiny dans un cadre simple, sortis en 2022 et 2023. Un seul Pokémon Radieux par deck.",
+    jp=[], en=RADIANT),
+  dict(id="TH-BRIL", name="Pokémon Brillant", kana="ひかるポケモン", group="shiny", species=[],
+    note="Les Pokémon Brillant (Shining) : Neo Revelation et Neo Destiny (2001-2002), Légendes Brillantes (2017), leurs promos et la réédition de Célébrations.",
+    jp=[], en=BRILLANT),
+]
+for t in THEMES: t.setdefault("group", "espece")
 print("const THEMES=" + json.dumps(THEMES, ensure_ascii=False, separators=(",", ":")) + ";", file=open(sys.argv[1], "w"))
-print("TH-SHINY", len(shiny), "cartes ;", sum(1 for c in shiny if c["set"]=="Destinées de Paldea"), "Paldea", file=sys.stderr)
+for t in THEMES: print(t["id"], len(t["en"]) + len(t["jp"]), file=sys.stderr)
